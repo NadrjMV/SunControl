@@ -15,7 +15,13 @@ permissions:
 # Tarefas a serem executadas
 jobs:
   build-and-deploy:
-    runs-on: ubuntu-latest # Usa uma máquina virtual Linux
+    runs-on: ubuntu-latest
+    
+    # BLOCO ADICIONADO PARA CORRIGIR O ERRO
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+
     steps:
       # 1. Baixa o código do seu repositório para a máquina virtual
       - name: Checkout code
@@ -45,7 +51,3 @@ jobs:
       - name: Deploy to GitHub Pages
         id: deployment
         uses: actions/deploy-pages@v4
-
-        environment:
-          name: github-pages
-          url: ${{ steps.deployment.outputs.page_url }}
