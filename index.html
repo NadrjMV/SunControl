@@ -46,9 +46,25 @@
         .status-aguardando { border-color: #f59e0b; } .status-confirmada { border-color: #3b82f6; }
         .status-aprovada { border-color: #22c55e; } .status-recusada { border-color: #ef4444; }
 
-        .blob { position: fixed; border-radius: 50%; mix-blend-mode: screen; filter: blur(70px); z-index: -1; }
-        @keyframes pulse-blob { 00%, 100% { transform: scale(1) rotate(0deg); opacity: 0.15; } 50% { transform: scale(1.2) rotate(180deg); opacity: 0.1; } }
-        .animate-pulse-blob { animation: pulse-blob 20s infinite ease-in-out; }
+.blob { 
+    position: fixed; 
+    border-radius: 50%; 
+    mix-blend-mode: screen; 
+    filter: blur(70px); 
+    z-index: -1; 
+    /* A opacidade agora é fixa e não muda mais */
+    opacity: 0.32; 
+}
+
+@keyframes pulse-blob { 
+    /* Removemos a propriedade 'opacity' da animação */
+    0%, 100% { transform: scale(1) rotate(0deg); } 
+    50% { transform: scale(1.2) rotate(180deg); } 
+}
+
+.animate-pulse-blob { 
+    animation: pulse-blob 20s infinite ease-in-out; 
+}
 
         .modal-overlay { transition: opacity 0.3s ease; }
         .modal-content { transition: transform 0.3s ease, opacity 0.3s ease; }
