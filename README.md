@@ -1,7 +1,7 @@
 # ☀️ SunControl - Troca de Plantão
 
 <p align="center">
-  <img src="https://i.postimg.cc/mmZYxJJjx/SUN-CONTROL.png" alt="Logo do SunControl" width="150">
+  <img src="https://i.postimg.cc/mZYxJJjx/SUN-CONTROL.png" alt="Logo do SunControl" width="150">
 </p>
 
 <p align="center">
