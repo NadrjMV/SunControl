@@ -1,0 +1,693 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SunControl | Troca de Plantão [v13 - Estável]</title>
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    
+    <!-- Fontes -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+
+    <style>
+        body { font-family: 'Inter', sans-serif; background-color: #0a0a0a; color: #f0f0f0; overflow-x: hidden; }
+        :root { --sun-yellow: #FFC700; }
+
+        .btn { transition: transform 0.2s ease, background-color 0.2s ease, box-shadow 0.2s ease; border: none; cursor: pointer; }
+        .btn:hover { transform: scale(1.03); }
+        .btn:disabled { background-color: #333; color: #777; cursor: not-allowed; transform: none; }
+        .btn-primary { background-color: var(--sun-yellow); color: #111; }
+        .btn-primary:not(:disabled):hover { box-shadow: 0 0 20px rgba(255, 199, 0, 0.4); }
+        .btn-success { background-color: #22c55e; color: white; }
+        .btn-danger { background-color: #ef4444; color: white; }
+        .btn-secondary { background-color: #374151; color: white; }
+
+        .glassmorphism { background: rgba(10, 10, 10, 0.6); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); border: 1px solid rgba(255, 255, 255, 0.1); }
+        
+        .form-input, .form-select { background-color: #1a1a1a; border: 1px solid #333; color: #f0f0f0; transition: border-color 0.3s, box-shadow 0.3s; }
+        .form-input:focus, .form-select:focus { outline: none; border-color: var(--sun-yellow); box-shadow: 0 0 10px rgba(255, 199, 0, 0.3); }
+        .form-input:read-only { background-color: #222; opacity: 0.7; cursor: not-allowed; }
+        .form-select option { background-color: #1a1a1a; color: #f0f0f0 !important; }
+
+        .shift-card { background-color: #1c1c1c; border-left-width: 4px; transition: transform 0.3s ease, box-shadow 0.3s ease; }
+        .shift-card:hover { transform: translateY(-5px); box-shadow: 0 10px 20px rgba(0, 0, 0, 0.2); }
+        
+        .status-aguardando { border-color: #f59e0b; } .status-confirmada { border-color: #3b82f6; }
+        .status-aprovada { border-color: #22c55e; } .status-recusada { border-color: #ef4444; }
+
+        .blob { position: fixed; border-radius: 50%; mix-blend-mode: screen; filter: blur(70px); z-index: -1; }
+        @keyframes pulse-blob { 0%, 100% { transform: scale(1) rotate(0deg); opacity: 0.15; } 50% { transform: scale(1.2) rotate(180deg); opacity: 0.1; } }
+        .animate-pulse-blob { animation: pulse-blob 20s infinite ease-in-out; }
+
+        .modal-overlay { transition: opacity 0.3s ease; }
+        .modal-content { transition: transform 0.3s ease, opacity 0.3s ease; }
+        .modal-close { color: #f0f0f0 !important; transition: color 0.2s ease-in-out; }
+
+        .modal-close:hover {
+            color: var(--sun-yellow); /* Muda a cor do ícone para amarelo ao passar o mouse */
+        }
+        .clickable-name { cursor: pointer; text-decoration: underline; text-decoration-color: rgba(255, 199, 0, 0.5); transition: text-decoration-color 0.3s; }
+        .clickable-name:hover { text-decoration-color: rgba(255, 199, 0, 1); }
+    </style>
+</head>
+<body class="antialiased">
+    <!-- Fundo animado -->
+    <div class="blob bg-yellow-400 w-96 h-96 top-10 left-10 animate-pulse-blob"></div>
+    <div class="blob bg-blue-500 w-96 h-96 bottom-10 right-10 animate-pulse-blob" style="animation-delay: 7s;"></div>
+
+    <!-- ===== TELA DE AUTENTICAÇÃO ===== -->
+    <div id="auth-container" class="min-h-screen flex items-center justify-center p-4">
+        <div class="w-full max-w-md">
+            <!-- Formulário de Login -->
+            <div id="login-view">
+                <div class="glassmorphism p-8 rounded-2xl">
+                    <h2 class="text-3xl font-bold text-center text-white mb-2">Bem-vindo ao SunControl</h2>
+                    <p class="text-center text-gray-400 mb-8">Acesse para gerenciar os plantões.</p>
+                    <form id="login-form" class="space-y-4">
+                        <input type="email" id="login-email" placeholder="Email" required class="form-input w-full p-3 rounded-lg" autocomplete="email">
+                        <input type="password" id="login-password" placeholder="Senha" required class="form-input w-full p-3 rounded-lg" autocomplete="current-password">
+                        <button type="submit" class="btn btn-primary w-full font-bold py-3 rounded-full text-base">Entrar</button>
+                    </form>
+                    <p id="login-error" class="text-red-500 text-sm mt-4 text-center h-4"></p>
+                    <p class="text-center text-sm text-gray-400 mt-6">Não tem uma conta? <a href="#" id="show-register" class="font-semibold text-[var(--sun-yellow)] hover:underline">Cadastre-se</a></p>
+                </div>
+            </div>
+
+            <!-- Formulário de Cadastro -->
+            <div id="register-view" class="hidden">
+                 <div class="glassmorphism p-8 rounded-2xl">
+                    <h2 class="text-3xl font-bold text-center text-white mb-2">Crie sua Conta</h2>
+                    <p class="text-center text-gray-400 mb-8">O acesso será validado por um supervisor.</p>
+                    <form id="register-form" class="space-y-4">
+                        <input type="text" id="register-name" placeholder="Nome Completo" required class="form-input w-full p-3 rounded-lg" autocomplete="name">
+                        <input type="email" id="register-email" placeholder="Email" required class="form-input w-full p-3 rounded-lg" autocomplete="email">
+                        <input type="password" id="register-password" placeholder="Senha (mínimo 6 caracteres)" required class="form-input w-full p-3 rounded-lg" autocomplete="new-password">
+                        <input type="password" id="register-confirm-password" placeholder="Confirmar Senha" required class="form-input w-full p-3 rounded-lg" autocomplete="new-password">
+                        <button type="submit" class="btn btn-primary w-full font-bold py-3 rounded-full text-base">Cadastrar</button>
+                    </form>
+                    <p id="register-error" class="text-red-500 text-sm mt-4 text-center h-4"></p>
+                    <p class="text-center text-sm text-gray-400 mt-6">Já tem uma conta? <a href="#" id="show-login" class="font-semibold text-[var(--sun-yellow)] hover:underline">Faça Login</a></p>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- ===== APLICAÇÃO PRINCIPAL (escondida por padrão) ===== -->
+    <div id="app-container" class="hidden">
+        <header class="fixed top-0 left-0 w-full z-50 py-3 px-6 md:px-12 glassmorphism">
+            <div class="container mx-auto flex justify-between items-center">
+                <div class="flex items-center space-x-3">
+                    <i data-lucide="shield-check" class="text-[var(--sun-yellow)]"></i>
+                    <h1 class="text-xl font-bold text-white">SunControl</h1>
+                </div>
+                <div class="flex items-center space-x-4">
+                     <div id="supervisor-actions" class="hidden">
+                         <button id="open-dashboard-btn" class="btn btn-secondary text-xs font-semibold py-2 px-3 rounded-full flex items-center gap-2">
+                             <i data-lucide="layout-dashboard"></i> Dashboard
+                         </button>
+                     </div>
+                     <div id="profile-area" class="flex items-center space-x-3 cursor-pointer p-2 rounded-lg hover:bg-white/10 transition-colors">
+                         <img id="profile-pic-header" src="https://placehold.co/40x40/1a1a1a/f0f0f0?text=S" class="w-8 h-8 rounded-full object-cover border-2 border-gray-600">
+                         <div class="text-right">
+                             <span id="user-greeting" class="text-sm font-semibold text-white block"></span>
+                             <span id="user-role" class="text-xs text-[var(--sun-yellow)] block capitalize"></span>
+                         </div>
+                     </div>
+                     <button id="logout-btn" class="btn btn-danger text-xs font-semibold py-2 px-3 rounded-full">Sair</button>
+                </div>
+            </div>
+        </header>
+
+        <main class="pt-24 pb-12 relative z-10">
+            <section id="dashboard-stats" class="container mx-auto px-6 md:px-12 mb-12">
+                <div class="grid grid-cols-2 md:grid-cols-4 gap-4 text-center">
+                    <div class="glassmorphism p-4 rounded-lg"><h4 class="text-2xl font-bold text-[var(--sun-yellow)]" id="count-total">0</h4><p class="text-sm text-gray-400">Total</p></div>
+                    <div class="glassmorphism p-4 rounded-lg"><h4 class="text-2xl font-bold text-yellow-500" id="count-pending">0</h4><p class="text-sm text-gray-400">Aguardando</p></div>
+                    <div class="glassmorphism p-4 rounded-lg"><h4 class="text-2xl font-bold text-green-500" id="count-approved">0</h4><p class="text-sm text-gray-400">Aprovadas</p></div>
+                    <div class="glassmorphism p-4 rounded-lg"><h4 class="text-2xl font-bold text-red-500" id="count-rejected">0</h4><p class="text-sm text-gray-400">Recusadas</p></div>
+                </div>
+            </section>
+
+            <div id="main-content-grid" class="container mx-auto px-6 md:px-12 grid lg:grid-cols-3 gap-8">
+                <div id="form-section" class="lg:col-span-1"></div>
+                <div id="shift-list-container" class="lg:col-span-2">
+                    <div class="flex justify-between items-center mb-6">
+                        <h3 class="text-2xl font-bold">Histórico de Trocas</h3>
+                        <div id="export-container"></div>
+                    </div>
+                    <div id="shift-list" class="space-y-4"></div>
+                </div>
+            </div>
+        </main>
+    </div>
+    
+    <!-- ===== MODAIS ===== -->
+    <div id="modal-container"></div>
+
+    <!-- Firebase SDK -->
+    <script type="module" src="https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js"></script>
+    <script type="module" src="https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js"></script>
+    <script type="module" src="https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js"></script>
+    
+    <!-- Lucide Icons -->
+    <script src="https://cdn.jsdelivr.net/npm/lucide-static@0.378.0/lucide.min.js"></script>
+
+    <!-- Lógica da Aplicação -->
+    <script type="module">
+        // --- SDK IMPORTS ---
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, collection, addDoc, onSnapshot, doc, updateDoc, query, orderBy, serverTimestamp, getDoc, setDoc, getDocs, where } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+// --- FIREBASE CONFIG ---
+const firebaseConfig = {
+    apiKey: "%%FIREBASE_API_KEY%%",
+    authDomain: "%%FIREBASE_AUTH_DOMAIN%%",
+    projectId: "%%FIREBASE_PROJECT_ID%%",
+    storageBucket: "%%FIREBASE_STORAGE_BUCKET%%",
+    messagingSenderId: "%%FIREBASE_MESSAGING_SENDER_ID%%",
+    appId: "%%FIREBASE_APP_ID%%"
+}; 
+        const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
+        
+        // --- INITIALIZATION ---
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+        const auth = getAuth(app);
+
+        // --- DOM ELEMENTS ---
+        const authContainer = document.getElementById('auth-container');
+        const appContainer = document.getElementById('app-container');
+        const modalContainer = document.getElementById('modal-container');
+        
+        // --- APP STATE ---
+        let currentUserProfile = null;
+        let allShifts = [];
+        let allUsers = new Map();
+        let statusChart = null;
+        let monthlyChart = null;
+        let unsubscribeShifts = null;
+
+        // --- TEMPLATES HTML ---
+        const confirmationModalHTML = (title, message, confirmClass) => `
+            <div class="modal-overlay fixed inset-0 bg-black bg-opacity-70 z-[100] flex items-center justify-center p-4 opacity-0">
+                <div class="modal-content glassmorphism rounded-2xl p-8 max-w-sm w-full shadow-lg scale-95 opacity-0">
+                    <div class="flex justify-between items-center mb-6">
+                        <h4 class="text-xl font-bold">${title}</h4>
+                        <button class="modal-close p-2 rounded-full hover:bg-white/10"><i data-lucide="x" class="text-white"></i></button>
+                    </div>
+                    <p class="text-gray-300 mb-8">${message}</p>
+                    <div class="flex justify-end space-x-4">
+                        <button class="modal-close btn btn-secondary font-semibold py-2 px-5 rounded-full">Cancelar</button>
+                        <button id="modalConfirm" class="btn ${confirmClass} font-semibold py-2 px-5 rounded-full">Confirmar</button>
+                    </div>
+                </div>
+            </div>`;
+
+        const profileModalHTML = (user, isOwnProfile) => {
+            const photo = user.photoURL || `https://placehold.co/80x80/1a1a1a/f0f0f0?text=${user.name.charAt(0)}`;
+            const posto = user.posto || 'Não informado';
+            const cidade = user.cidade || 'Não informado';
+            
+            return `
+            <div class="modal-overlay fixed inset-0 bg-black bg-opacity-70 z-[100] flex items-center justify-center p-4 opacity-0">
+                <div class="modal-content glassmorphism rounded-2xl p-8 max-w-lg w-full shadow-lg scale-95 opacity-0">
+                    <div class="flex justify-between items-center mb-6">
+                        <h3 class="text-2xl font-bold">${isOwnProfile ? 'Meu Perfil' : `Perfil de ${user.name.split(' ')[0]}`}</h3>
+                        <button class="modal-close p-2 rounded-full hover:bg-white/10"><i data-lucide="x" class="text-white"></i></button>
+                    </div>
+                    <div id="profile-view-mode">
+                        <div class="space-y-4">
+                            <div class="flex items-center space-x-4">
+                                <img src="${photo}" class="w-20 h-20 rounded-full object-cover border-2 border-[var(--sun-yellow)]">
+                                <h4 class="text-2xl font-bold">${user.name}</h4>
+                            </div>
+                            <p><strong class="text-gray-400 w-20 inline-block">Posto:</strong> ${posto}</p>
+                            <p><strong class="text-gray-400 w-20 inline-block">Cidade:</strong> ${cidade}</p>
+                            ${isOwnProfile ? '<div class="pt-4 flex justify-end"><button id="edit-profile-btn" class="btn btn-secondary font-bold py-2 px-6 rounded-full text-base">Editar Perfil</button></div>' : ''}
+                        </div>
+                    </div>
+                    <form id="profile-edit-mode" class="hidden space-y-4">
+                        <div class="flex items-center space-x-4">
+                            <img src="${photo}" id="edit-profile-pic-preview" class="w-20 h-20 rounded-full object-cover border-2 border-[var(--sun-yellow)]">
+                            <div class="flex-grow">
+                                <label class="text-sm font-medium text-gray-300">URL da Foto de Perfil</label>
+                                <input type="url" id="profile-photo-url" value="${user.photoURL || ''}" placeholder="https://exemplo.com/sua-foto.jpg" class="form-input w-full p-3 rounded-lg mt-1">
+                            </div>
+                        </div>
+                        <div>
+                            <label class="text-sm font-medium text-gray-300">Posto de Trabalho</label>
+                            <input type="text" id="profile-posto" value="${user.posto || ''}" placeholder="Ex: Portaria Principal" class="form-input w-full p-3 rounded-lg mt-1">
+                        </div>
+                        <div>
+                            <label class="text-sm font-medium text-gray-300">Cidade</label>
+                            <input type="text" id="profile-cidade" value="${user.cidade || ''}" placeholder="Ex: São Paulo" class="form-input w-full p-3 rounded-lg mt-1" ${user.cidade ? 'readonly' : ''}>
+                        </div>
+                        <details class="pt-2">
+                            <summary class="text-sm text-gray-400 cursor-pointer hover:text-white">Como adicionar minha foto de perfil?</summary>
+                            <p class="text-xs text-gray-500 mt-2 p-3 bg-black/20 rounded-lg">Para adicionar uma foto, você precisa hospedá-la em um site (como <a href="https://imgur.com/upload" target="_blank" class="underline">Imgur</a>). Após o upload, clique com o botão direito na imagem, selecione "Copiar endereço da imagem" e cole o link no campo acima.</p>
+                        </details>
+                        <div class="pt-4 flex justify-end space-x-4">
+                            <button type="button" id="cancel-edit-btn" class="btn btn-secondary font-bold py-3 px-8 rounded-full text-base">Cancelar</button>
+                            <button type="submit" class="btn btn-primary font-bold py-3 px-8 rounded-full text-base">Salvar Alterações</button>
+                        </div>
+                    </form>
+                </div>
+            </div>`;
+        };
+
+        const dashboardModalHTML = () => `
+            <div class="modal-overlay fixed inset-0 bg-black bg-opacity-70 z-[100] flex items-center justify-center p-4 opacity-0">
+                <div class="modal-content glassmorphism rounded-2xl p-8 max-w-4xl w-full shadow-lg scale-95 opacity-0">
+                    <div class="flex justify-between items-center mb-6">
+                        <h3 class="text-2xl font-bold">Dashboard de Ocorrências</h3>
+                        <button class="modal-close p-2 rounded-full hover:bg-white/10"><i data-lucide="x" class="text-white"></i></button>
+                    </div>
+                    <div class="grid md:grid-cols-2 gap-8">
+                        <div class="h-80"><canvas id="statusChart"></canvas></div>
+                        <div class="h-80"><canvas id="monthlyChart"></canvas></div>
+                    </div>
+                </div>
+            </div>`;
+
+        const shiftFormHTML = `
+            <div class="glassmorphism p-6 rounded-2xl sticky top-24">
+                <h3 class="text-2xl font-bold mb-6">Solicitar Troca</h3>
+                <form id="shift-form-inner" class="space-y-4">
+                    <div>
+                        <label class="text-sm font-medium text-gray-300">Trocar com o(a) colega</label>
+                        <select id="colleagueName" required class="form-select w-full p-3 rounded-lg mt-1">
+                            <option value="" disabled selected>Selecione um colega</option>
+                        </select>
+                    </div>
+                    <div>
+                         <label class="text-sm font-medium text-gray-300">Data e hora do seu plantão</label>
+                        <input type="datetime-local" id="originalDate" required class="form-input w-full p-3 rounded-lg mt-1">
+                    </div>
+                    <div>
+                         <label class="text-sm font-medium text-gray-300">Data e hora desejada</label>
+                        <input type="datetime-local" id="desiredDate" required class="form-input w-full p-3 rounded-lg mt-1">
+                    </div>
+                    <div>
+                         <label class="text-sm font-medium text-gray-300">Motivo (opcional)</label>
+                        <textarea id="reason" placeholder="Ex: Consulta médica" rows="3" class="form-input w-full p-3 rounded-lg mt-1"></textarea>
+                    </div>
+                    <div class="pt-2">
+                        <button type="submit" class="btn btn-primary w-full font-bold py-3 px-8 rounded-full text-base">Enviar Solicitação</button>
+                    </div>
+                </form>
+            </div>`;
+
+        // --- AUTHENTICATION LOGIC ---
+        function initializeAuth() {
+            const loginForm = document.getElementById('login-form');
+            const registerForm = document.getElementById('register-form');
+            const showRegisterBtn = document.getElementById('show-register');
+            const showLoginBtn = document.getElementById('show-login');
+
+            onAuthStateChanged(auth, async (user) => {
+                if (user) {
+                    if (unsubscribeShifts) unsubscribeShifts();
+                    const userDocRef = doc(db, "users", user.uid);
+                    const userDoc = await getDoc(userDocRef);
+                    if (userDoc.exists()) {
+                        currentUserProfile = { uid: user.uid, ...userDoc.data() };
+                        authContainer.classList.add('hidden');
+                        appContainer.classList.remove('hidden');
+                        initializeAppUI();
+                    } else { await signOut(auth); }
+                } else {
+                    currentUserProfile = null;
+                    authContainer.classList.remove('hidden');
+                    appContainer.classList.add('hidden');
+                }
+            });
+
+            loginForm.addEventListener('submit', async (e) => {
+                e.preventDefault();
+                const email = document.getElementById('login-email').value;
+                const password = document.getElementById('login-password').value;
+                const errorP = document.getElementById('login-error');
+                errorP.textContent = '';
+                try { await signInWithEmailAndPassword(auth, email, password); } 
+                catch (error) { errorP.textContent = "Email ou senha inválidos."; }
+            });
+
+            registerForm.addEventListener('submit', async (e) => {
+                e.preventDefault();
+                const name = document.getElementById('register-name').value;
+                const email = document.getElementById('register-email').value;
+                const password = document.getElementById('register-password').value;
+                const confirmPassword = document.getElementById('register-confirm-password').value;
+                const errorP = document.getElementById('register-error');
+                errorP.textContent = '';
+
+                if (password !== confirmPassword) { errorP.textContent = 'As senhas não coincidem.'; return; }
+
+                try {
+                    const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+                    await setDoc(doc(db, "users", userCredential.user.uid), { name, email, role: 'vigilante', posto: '', cidade: '', photoURL: '' });
+                } catch (error) {
+                    if (error.code === 'auth/email-already-in-use') errorP.textContent = 'Este email já está em uso.';
+                    else if (error.code === 'auth/weak-password') errorP.textContent = 'A senha deve ter no mínimo 6 caracteres.';
+                    else errorP.textContent = 'Ocorreu um erro ao cadastrar.';
+                }
+            });
+
+            showRegisterBtn.addEventListener('click', (e) => { e.preventDefault(); document.getElementById('login-view').classList.add('hidden'); document.getElementById('register-view').classList.remove('hidden'); });
+            showLoginBtn.addEventListener('click', (e) => { e.preventDefault(); document.getElementById('register-view').classList.add('hidden'); document.getElementById('login-view').classList.remove('hidden'); });
+        }
+        
+        // --- MAIN APP LOGIC ---
+        async function initializeAppUI() {
+            if (!currentUserProfile) return;
+            
+            const { name, role, photoURL } = currentUserProfile;
+            document.getElementById('user-greeting').textContent = `Olá, ${name.split(' ')[0]}`;
+            document.getElementById('user-role').textContent = role;
+            document.getElementById('profile-pic-header').src = photoURL || `https://placehold.co/40x40/1a1a1a/f0f0f0?text=${name.charAt(0)}`;
+
+            const formSection = document.getElementById('form-section');
+            const shiftListContainer = document.getElementById('shift-list-container');
+            const supervisorActions = document.getElementById('supervisor-actions');
+
+            if (role === 'supervisor') {
+                formSection.innerHTML = '';
+                formSection.style.display = 'none';
+                shiftListContainer.classList.remove('lg:col-span-2');
+                shiftListContainer.classList.add('lg:col-span-3');
+                supervisorActions.classList.remove('hidden');
+            } else {
+                formSection.innerHTML = shiftFormHTML;
+                formSection.style.display = 'block';
+                shiftListContainer.classList.remove('lg:col-span-3');
+                shiftListContainer.classList.add('lg:col-span-2');
+                supervisorActions.classList.add('hidden');
+            }
+            
+            await fetchAllUsers();
+            setupEventListeners();
+            startRealtimeListener();
+        }
+
+        async function fetchAllUsers() {
+            allUsers.clear();
+            try {
+                const querySnapshot = await getDocs(collection(db, "users"));
+                querySnapshot.forEach(doc => allUsers.set(doc.id, { id: doc.id, ...doc.data() }));
+            } catch (error) {
+                console.error("Erro ao buscar usuários (verifique as regras do Firestore):", error);
+            }
+            
+            const colleaguesSelect = document.getElementById('colleagueName');
+            if (colleaguesSelect) {
+                colleaguesSelect.innerHTML = '<option value="" disabled selected>Selecione um colega</option>';
+                allUsers.forEach(user => {
+                    if (user.id !== currentUserProfile.uid && user.role === 'vigilante') {
+                        const option = document.createElement('option');
+                        option.value = user.name;
+                        option.dataset.uid = user.id;
+                        colleaguesSelect.appendChild(option);
+                    }
+                });
+            }
+        }
+
+        function startRealtimeListener() {
+            if (unsubscribeShifts) unsubscribeShifts();
+            const shiftsCollectionRef = collection(db, `artifacts/${appId}/public/data/shifts`);
+            const q = query(shiftsCollectionRef, orderBy('createdAt', 'desc'));
+            unsubscribeShifts = onSnapshot(q, (snapshot) => {
+                allShifts = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                renderShifts();
+            }, (error) => {
+                console.error("Erro no listener do Firestore:", error);
+                document.getElementById('shift-list').innerHTML = `<div class="text-center text-red-400 p-8 bg-red-900/20 rounded-lg">Erro ao carregar dados. Verifique as permissões do Firestore e o console.</div>`;
+            });
+        }
+
+        function renderShifts() {
+            if (!currentUserProfile) return;
+            const shiftList = document.getElementById('shift-list');
+            shiftList.innerHTML = '';
+            
+            const isSupervisor = currentUserProfile.role === 'supervisor';
+            const visibleShifts = allShifts.filter(s => isSupervisor || s.requesterUid === currentUserProfile.uid || s.colleagueUid === currentUserProfile.uid);
+
+            if (visibleShifts.length === 0) {
+                shiftList.innerHTML = `<div class="text-center text-gray-500 p-8 bg-[#1a1a1a]/50 rounded-lg">Nenhuma solicitação para você.</div>`;
+            } else {
+                visibleShifts.forEach(shift => {
+                    const statusMap = { 'Aguardando Confirmação': { class: 'status-aguardando', text: 'Aguardando Confirmação', icon: 'clock' }, 'Confirmada - Aguardando Supervisor': { class: 'status-confirmada', text: 'Aguardando Supervisor', icon: 'user-check' }, 'Aprovada': { class: 'status-aprovada', text: 'Aprovada', icon: 'check-circle-2' }, 'Recusada': { class: 'status-recusada', text: 'Recusada pelo Colega', icon: 'x-circle' }, 'Recusada pelo Supervisor': { class: 'status-recusada', text: 'Recusada pelo Supervisor', icon: 'shield-x' }, };
+                    const statusInfo = statusMap[shift.status];
+                    const card = document.createElement('div');
+                    card.className = `shift-card p-5 rounded-lg ${statusInfo.class}`;
+
+                    let actionsHtml = '';
+                    if (currentUserProfile.uid === shift.colleagueUid && shift.status === 'Aguardando Confirmação') {
+                        actionsHtml = `<button data-id="${shift.id}" data-action="accept" class="btn btn-success text-xs font-bold py-2 px-4 rounded-full">Aceitar</button> <button data-id="${shift.id}" data-action="reject" class="btn btn-danger text-xs font-bold py-2 px-4 rounded-full">Recusar</button>`;
+                    }
+                    if (isSupervisor && shift.status === 'Confirmada - Aguardando Supervisor') {
+                         actionsHtml = `<button data-id="${shift.id}" data-action="approve" class="btn btn-success text-xs font-bold py-2 px-4 rounded-full">Aprovar</button> <button data-id="${shift.id}" data-action="decline" class="btn btn-danger text-xs font-bold py-2 px-4 rounded-full">Recusar</button>`;
+                    }
+
+                    card.innerHTML = `
+                        <div class="flex justify-between items-start flex-wrap gap-2">
+                            <div>
+                                <h4 class="font-bold text-lg text-white">
+                                    <span class="clickable-name" data-uid="${shift.requesterUid}">${shift.requester}</span> 
+                                    <i data-lucide="arrow-right" class="inline-block h-4 w-4 mx-1"></i> 
+                                    <span class="clickable-name" data-uid="${shift.colleagueUid}">${shift.colleague}</span>
+                                </h4>
+                                <p class="text-sm text-gray-400">De: ${formatDateTime(shift.originalDate)} <br> Para: ${formatDateTime(shift.desiredDate)}</p>
+                                ${shift.reason ? `<p class="text-sm text-gray-300 mt-2 italic">Motivo: "${shift.reason}"</p>` : ''}
+                            </div>
+                            <div class="text-right flex-shrink-0"><span class="flex items-center justify-end text-sm font-semibold"><i data-lucide="${statusInfo.icon}" class="h-4 w-4 mr-2"></i> ${statusInfo.text}</span></div>
+                        </div>
+                        ${actionsHtml ? `<div class="mt-4 pt-4 border-t border-gray-700 flex justify-end space-x-3">${actionsHtml}</div>` : ''}
+                    `;
+                    shiftList.appendChild(card);
+                });
+            }
+            if(typeof lucide !== 'undefined') lucide.createIcons();
+            updateDashboardStats();
+        }
+        
+        function updateDashboardStats() {
+            document.getElementById('count-total').textContent = allShifts.length;
+            document.getElementById('count-pending').textContent = allShifts.filter(s => s.status.includes('Aguardando')).length;
+            document.getElementById('count-approved').textContent = allShifts.filter(s => s.status === 'Aprovada').length;
+            document.getElementById('count-rejected').textContent = allShifts.filter(s => s.status.includes('Recusada')).length;
+
+            const exportContainer = document.getElementById('export-container');
+            if (currentUserProfile && currentUserProfile.role === 'supervisor') {
+                exportContainer.innerHTML = `<button id="export-json" class="btn btn-secondary text-xs font-semibold py-2 px-3 rounded-full">Exportar JSON</button>`;
+                document.getElementById('export-json').addEventListener('click', exportDataAsJson);
+            } else {
+                exportContainer.innerHTML = '';
+            }
+        }
+
+        function setupEventListeners() {
+            document.getElementById('logout-btn').addEventListener('click', () => signOut(auth));
+            document.getElementById('profile-area').addEventListener('click', () => openProfileModal(currentUserProfile, true));
+            
+            const openDashboardBtn = document.getElementById('open-dashboard-btn');
+            if(openDashboardBtn) openDashboardBtn.addEventListener('click', openDashboardModal);
+
+            const shiftFormContainer = document.getElementById('form-section');
+            if(shiftFormContainer.hasChildNodes()) {
+                shiftFormContainer.querySelector('#shift-form-inner').addEventListener('submit', async (e) => {
+                    e.preventDefault();
+                    const colleagueSelect = document.getElementById('colleagueName');
+                    const selectedOption = colleagueSelect.options[colleagueSelect.selectedIndex];
+                    const colleagueName = selectedOption.value;
+                    const colleagueUid = selectedOption.dataset.uid;
+
+                    if (!colleagueUid) { alert('Por favor, selecione um colega válido da lista.'); return; }
+                    
+                    const newShiftData = {
+                        requester: currentUserProfile.name, requesterUid: currentUserProfile.uid,
+                        colleague: colleagueName, colleagueUid: colleagueUid,
+                        originalDate: document.getElementById('originalDate').value,
+                        desiredDate: document.getElementById('desiredDate').value,
+                        reason: document.getElementById('reason').value,
+                        status: 'Aguardando Confirmação',
+                        createdAt: serverTimestamp()
+                    };
+                    await addDoc(collection(db, `artifacts/${appId}/public/data/shifts`), newShiftData);
+                    e.target.reset();
+                });
+            }
+
+            document.getElementById('shift-list').addEventListener('click', (e) => {
+                const nameSpan = e.target.closest('.clickable-name');
+                const actionButton = e.target.closest('button');
+
+                if (nameSpan) {
+                    const uid = nameSpan.dataset.uid;
+                    const userToView = allUsers.get(uid);
+                    if (userToView) openProfileModal(userToView, uid === currentUserProfile.uid);
+                    return;
+                }
+
+                if (actionButton) {
+                    const id = actionButton.dataset.id;
+                    const action = actionButton.dataset.action;
+                    const shift = allShifts.find(s => s.id === id);
+                    if (!shift) return;
+
+                    const performUpdate = async (newStatus) => {
+                        await updateDoc(doc(db, `artifacts/${appId}/public/data/shifts`, id), { status: newStatus });
+                    };
+
+                    const actions = {
+                        accept: () => showActionModal('Aceitar Troca', `Confirma a troca do plantão?`, 'btn-success', () => performUpdate('Confirmada - Aguardando Supervisor')),
+                        reject: () => showActionModal('Recusar Troca', 'Tem certeza que deseja recusar?', 'btn-danger', () => performUpdate('Recusada')),
+                        approve: () => showActionModal('Aprovar Troca', 'Confirma a aprovação final?', 'btn-success', () => performUpdate('Aprovada')),
+                        decline: () => showActionModal('Recusar Troca', 'Tem certeza que deseja recusar?', 'btn-danger', () => performUpdate('Recusada pelo Supervisor'))
+                    };
+                    if (actions[action]) actions[action]();
+                }
+            });
+        }
+
+        // --- PROFILE MODAL FUNCTIONS ---
+        function openProfileModal(user, isOwnProfile) {
+            const modalEl = createAndAppendModal(profileModalHTML(user, isOwnProfile));
+            if (!modalEl) return;
+
+            if (isOwnProfile) {
+                const viewMode = modalEl.querySelector('#profile-view-mode');
+                const editMode = modalEl.querySelector('#profile-edit-mode');
+                
+                modalEl.querySelector('#edit-profile-btn').addEventListener('click', () => {
+                    viewMode.classList.add('hidden');
+                    editMode.classList.remove('hidden');
+                });
+                modalEl.querySelector('#cancel-edit-btn').addEventListener('click', () => {
+                    viewMode.classList.remove('hidden');
+                    editMode.classList.add('hidden');
+                });
+                editMode.addEventListener('submit', (e) => saveProfileData(e, modalEl));
+            }
+        }
+
+        async function saveProfileData(e, modalEl) {
+            e.preventDefault();
+            const photoURL = document.getElementById('profile-photo-url').value;
+            const posto = document.getElementById('profile-posto').value;
+            const cidade = document.getElementById('profile-cidade').value;
+
+            const dataToUpdate = { photoURL, posto };
+            if (!currentUserProfile.cidade && cidade) dataToUpdate.cidade = cidade;
+
+            const userDocRef = doc(db, "users", currentUserProfile.uid);
+            try {
+                await updateDoc(userDocRef, dataToUpdate);
+                await fetchAllUsers();
+                currentUserProfile = allUsers.get(currentUserProfile.uid);
+                initializeAppUI();
+                hideModalContainer(modalEl);
+            } catch (error) { alert("Não foi possível salvar as alterações."); }
+        }
+
+        // --- DASHBOARD MODAL FUNCTIONS ---
+        function openDashboardModal() {
+            const modalEl = createAndAppendModal(dashboardModalHTML());
+            if (!modalEl) return;
+            initializeDashboardCharts();
+        }
+        
+        function initializeDashboardCharts() {
+            const statusCounts = allShifts.reduce((acc, s) => { acc[s.status] = (acc[s.status] || 0) + 1; return acc; }, {});
+            const monthlyCounts = allShifts.reduce((acc, s) => { if(s.createdAt){ const m = s.createdAt.toDate().toLocaleString('default', {month:'short'}); acc[m] = (acc[m]||0)+1; } return acc; }, {});
+
+            const statusCtx = document.getElementById('statusChart').getContext('2d');
+            if(statusChart) statusChart.destroy();
+            statusChart = new Chart(statusCtx, { type: 'doughnut', data: { labels: Object.keys(statusCounts), datasets: [{ data: Object.values(statusCounts), backgroundColor: ['#f59e0b', '#3b82f6', '#22c55e', '#ef4444', '#ef4444'], borderColor: '#1c1c1c', borderWidth: 4 }] }, options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'top', labels: { color: '#f0f0f0' } } } } });
+
+            const monthlyCtx = document.getElementById('monthlyChart').getContext('2d');
+            if(monthlyChart) monthlyChart.destroy();
+            monthlyChart = new Chart(monthlyCtx, { type: 'bar', data: { labels: Object.keys(monthlyCounts).reverse(), datasets: [{ label: 'Trocas por Mês', data: Object.values(monthlyCounts).reverse(), backgroundColor: 'rgba(255, 199, 0, 0.6)', borderColor: 'rgba(255, 199, 0, 1)', borderWidth: 1 }] }, options: { responsive: true, maintainAspectRatio: false, scales: { y: { ticks: { color: '#999', stepSize: 1 } }, x: { ticks: { color: '#999' } } }, plugins: { legend: { display: false } } } });
+        }
+        
+        // --- UTILITY FUNCTIONS (MODAL LOGIC REBUILT) ---
+        function createAndAppendModal(innerHTML) {
+            const tempDiv = document.createElement('div');
+            tempDiv.innerHTML = innerHTML.trim();
+            const modalEl = tempDiv.firstElementChild;
+            if (!modalEl) return null;
+            
+            modalContainer.appendChild(modalEl);
+            
+            modalEl.querySelectorAll('.modal-close').forEach(btn => {
+                btn.addEventListener('click', () => hideModalContainer(modalEl));
+            });
+            
+            modalEl.addEventListener('click', (e) => {
+                if (e.target === modalEl) hideModalContainer(modalEl);
+            });
+
+            showModalContainer(modalEl);
+            return modalEl;
+        }
+
+        function showActionModal(title, message, confirmClass, onConfirm) {
+            const modalEl = createAndAppendModal(confirmationModalHTML(title, message, confirmClass));
+            if (!modalEl) return;
+            modalEl.querySelector('#modalConfirm').addEventListener('click', () => { onConfirm(); hideModalContainer(modalEl); });
+        }
+
+        function showModalContainer(modalEl) {
+            if (!modalEl) return;
+            setTimeout(() => {
+                modalEl.classList.remove('opacity-0');
+                const content = modalEl.querySelector('.modal-content');
+                if (content) content.classList.remove('scale-95', 'opacity-0');
+                if(typeof lucide !== 'undefined') lucide.createIcons();
+            }, 10);
+        }
+
+        function hideModalContainer(modalEl) {
+            if (!modalEl) return;
+            modalEl.classList.add('opacity-0');
+            const content = modalEl.querySelector('.modal-content');
+            if (content) content.classList.add('scale-95', 'opacity-0');
+            setTimeout(() => { 
+                if(modalContainer.contains(modalEl)) {
+                    modalContainer.removeChild(modalEl);
+                }
+            }, 300);
+        }
+        
+        function formatDateTime(dateTimeString) {
+            if (!dateTimeString) return 'N/A';
+            const date = typeof dateTimeString.toDate === 'function' ? dateTimeString.toDate() : new Date(dateTimeString);
+            return date.toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+        }
+        
+        function exportDataAsJson() {
+            const dataToExport = allShifts.map(s => ({...s, createdAt: s.createdAt.toDate()}));
+            const jsonContent = JSON.stringify(dataToExport, null, 2);
+            const a = document.createElement('a');
+            const blob = new Blob([jsonContent], { type: 'application/json' });
+            a.href = URL.createObjectURL(blob);
+            a.download = 'suncontrol_trocas.json';
+            a.click();
+            URL.revokeObjectURL(a.href);
+        }
+
+        // --- START THE APP ---
+        document.addEventListener('DOMContentLoaded', initializeAuth);
+    </script>
+</body>
+</html>
