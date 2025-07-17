@@ -205,12 +205,12 @@
 
         // --- FIREBASE CONFIG ---
         const firebaseConfig = {
-            apiKey: "AIzaSyA0UFqsNRUGVwDpYcwduab8WaxoVrMxiBA",
-            authDomain: "suncontrol-d2d94.firebaseapp.com",
-            projectId: "suncontrol-d2d94",
-            storageBucket: "suncontrol-d2d94.appspot.com",
-            messagingSenderId: "434845455719",
-            appId: "1:434845455719:web:06cb665d1274c973f4cbc2"
+            apiKey: "__FIREBASE_API_KEY__",
+            authDomain: "__FIREBASE_AUTH_DOMAIN__",
+            projectId: "__FIREBASE_PROJECT_ID__",
+            storageBucket: "__FIREBASE_STORAGE_BUCKET__",
+            messagingSenderId: "__FIREBASE_MESSAGING_SENDER_ID__",
+            appId: "__FIREBASE_APP_ID__"
         };
         const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
         
@@ -559,6 +559,27 @@
         }
         
         function updateDashboardStats() {
+            // --- INÍCIO DA LÓGICA ADICIONADA ---
+            // 1. Calcula as contagens de cada status a partir da variável global `allShifts`
+            const counts = allShifts.reduce((acc, shift) => {
+                const status = shift.status;
+                if (status === 'Aguardando Confirmação' || status === 'Confirmada - Aguardando Supervisor') {
+                    acc.pending++;
+                } else if (status === 'Aprovada') {
+                    acc.approved++;
+                } else if (status === 'Recusada' || status === 'Recusada pelo Supervisor') {
+                    acc.rejected++;
+                }
+                return acc;
+            }, { pending: 0, approved: 0, rejected: 0 });
+
+            // 2. Atualiza o conteúdo de texto dos elementos HTML com os valores calculados
+            document.getElementById('count-total').textContent = allShifts.length;
+            document.getElementById('count-pending').textContent = counts.pending;
+            document.getElementById('count-approved').textContent = counts.approved;
+            document.getElementById('count-rejected').textContent = counts.rejected;
+            // --- FIM DA LÓGICA ADICIONADA ---
+
             const dashboardStats = document.getElementById('dashboard-stats');
             const exportContainer = document.getElementById('export-container');
 
