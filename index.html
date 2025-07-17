@@ -6,14 +6,18 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>SunControl | Troca de Plantão</title>
     
+    <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
     
+    <!-- Chart.js -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     
     <link rel="icon" type="image/png" href="https://i.postimg.cc/V6HS85m6/SUN-CONTROL-removebg.png">
 
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" integrity="sha512-SnH5WK+bZxgPHs44uWIX+LLJAJ9/2PkPKZ5QiAj6Ta86w+fsb2TkcmfRyVX3pBnMFcV7oQPJkl9QevSCWr3W6A==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+    <!-- Font Awesome CSS -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" xintegrity="sha512-SnH5WK+bZxgPHs44uWIX+LLJAJ9/2PkPKZ5QiAj6Ta86w+fsb2TkcmfRyVX3pBnMFcV7oQPJkl9QevSCWr3W6A==" crossorigin="anonymous" referrerpolicy="no-referrer" />
 
+    <!-- Fontes -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
@@ -44,40 +48,54 @@
         .status-aguardando { border-color: #f59e0b; } .status-confirmada { border-color: #3b82f6; }
         .status-aprovada { border-color: #22c55e; } .status-recusada { border-color: #ef4444; }
 
-        .blob { 
-            position: fixed; 
-            border-radius: 50%; 
-            mix-blend-mode: screen; 
-            filter: blur(70px); 
-            z-index: -1; 
-            opacity: 0.32; 
-        }
+.blob { 
+    position: fixed; 
+    border-radius: 50%; 
+    mix-blend-mode: screen; 
+    filter: blur(70px); 
+    z-index: -1; 
+    /* A opacidade agora é fixa e não muda mais */
+    opacity: 0.32; 
+}
 
-        @keyframes pulse-blob { 
-            0%, 100% { transform: scale(1) rotate(0deg); } 
-            50% { transform: scale(1.2) rotate(180deg); } 
-        }
+@keyframes pulse-blob { 
+    /* Removemos a propriedade 'opacity' da animação */
+    0%, 100% { transform: scale(1) rotate(0deg); } 
+    50% { transform: scale(1.2) rotate(180deg); } 
+}
 
-        .animate-pulse-blob { 
-            animation: pulse-blob 20s infinite ease-in-out; 
-        }
+.animate-pulse-blob { 
+    animation: pulse-blob 20s infinite ease-in-out; 
+}
 
         .modal-overlay { transition: opacity 0.3s ease; }
         .modal-content { transition: transform 0.3s ease, opacity 0.3s ease; }
         .modal-close { color: #f0f0f0 !important; transition: color 0.2s ease-in-out; }
-        .modal-close:hover { color: var(--sun-yellow); }
+
+        .modal-close:hover {
+            color: var(--sun-yellow); /* Muda a cor do ícone para amarelo ao passar o mouse */
+        }
         .clickable-name { cursor: pointer; text-decoration: underline; text-decoration-color: rgba(255, 199, 0, 0.5); transition: text-decoration-color 0.3s; }
         .clickable-name:hover { text-decoration-color: rgba(255, 199, 0, 1); }
-        .verified-badge { color: #1DA1F2; font-size: 0.8em; vertical-align: middle; margin-left: 0.25rem; }
+
+        .verified-badge {
+            color: #1DA1F2; /* Azul do Twitter/Verificado */
+            font-size: 0.8em; /* Ajusta o tamanho do ícone para ser menor que o texto */
+            vertical-align: middle; /* Ajuda a alinhar com o texto */
+            margin-left: 0.25rem; /* Um pequeno espaço à esquerda do ícone */
+        }
 
     </style>
 </head>
 <body class="antialiased">
+    <!-- Fundo animado -->
     <div class="blob bg-yellow-400 w-96 h-96 top-10 left-10 animate-pulse-blob"></div>
     <div class="blob bg-blue-500 w-96 h-96 bottom-10 right-10 animate-pulse-blob" style="animation-delay: 7s;"></div>
 
+    <!-- ===== TELA DE AUTENTICAÇÃO ===== -->
     <div id="auth-container" class="min-h-screen flex items-center justify-center p-4">
         <div class="w-full max-w-md">
+            <!-- Formulário de Login -->
             <div id="login-view">
                 <div class="glassmorphism p-8 rounded-2xl">
                     <h2 class="text-3xl font-bold text-center text-white mb-2">Bem-vindo ao <span class="text-blue-500">SunControl</span></h2>
@@ -92,6 +110,7 @@
                 </div>
             </div>
 
+            <!-- Formulário de Cadastro -->
             <div id="register-view" class="hidden">
                  <div class="glassmorphism p-8 rounded-2xl">
                     <h2 class="text-3xl font-bold text-center text-white mb-2">Crie sua Conta</h2>
@@ -110,6 +129,7 @@
         </div>
     </div>
     
+    <!-- ===== APLICAÇÃO PRINCIPAL (escondida por padrão) ===== -->
     <div id="app-container" class="hidden">
         <header class="fixed top-0 left-0 w-full z-50 py-3 px-6 md:px-12 glassmorphism">
             <div class="container mx-auto flex justify-between items-center">
@@ -136,6 +156,7 @@
         </header>
 
         <main class="pt-24 pb-12 relative z-10">
+            <!-- Seção de estatísticas (oculta para 'dono') -->
             <section id="dashboard-stats" class="container mx-auto px-6 md:px-12 mb-12 hidden">
                 <div class="grid grid-cols-2 md:grid-cols-4 gap-4 text-center">
                     <div class="glassmorphism p-4 rounded-lg"><h4 class="text-2xl font-bold text-[var(--sun-yellow)]" id="count-total">0</h4><p class="text-sm text-gray-400">Total</p></div>
@@ -151,25 +172,31 @@
                     <div class="flex justify-between items-center mb-6">
                         <h3 class="text-2xl font-bold">Histórico de Trocas</h3>
                         <div id="export-container" class="flex space-x-3">
-                            </div>
+                            <!-- Botões de exportar e excluir tudo para o dono -->
+                        </div>
                     </div>
                     <div id="shift-list" class="space-y-4"></div>
                 </div>
             </div>
         </main>
+        <!-- FOOTER -->
         <footer class="py-6 px-6 md:px-12 text-center text-gray-400 text-sm">
             Desenvolvido por <a href="https://www.linkedin.com/in/jordan-luiz-3ab157363?utm_source=share&utm_campaign=share_via&utm_content=profile&utm_medium=ios_app" target="_blank" class="font-bold text-white hover:underline whitespace-nowrap">@jordanlvs <i class="fa-solid fa-circle-check verified-badge"></i></a> (Proprietário da <a href="https://www.instagram.com/weblv.dev/" target="_blank" class="font-bold text-white hover:underline">WebLv)</a>        
         </footer>
     </div>
     
+    <!-- ===== MODAIS ===== -->
     <div id="modal-container"></div>
 
+    <!-- Firebase SDK -->
     <script type="module" src="https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js"></script>
     <script type="module" src="https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js"></script>
     <script type="module" src="https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js"></script>
     
+    <!-- Lucide Icons -->
     <script src="https://cdn.jsdelivr.net/npm/lucide-static@0.378.0/lucide.min.js"></script>
 
+    <!-- Lógica da Aplicação -->
     <script type="module">
         // --- SDK IMPORTS ---
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
@@ -178,13 +205,14 @@
 
         // --- FIREBASE CONFIG ---
         const firebaseConfig = {
-            apiKey: "%%FIREBASE_API_KEY%%",
-            authDomain: "%%FIREBASE_AUTH_DOMAIN%%",
-            projectId: "%%FIREBASE_PROJECT_ID%%",
-            storageBucket: "%%FIREBASE_STORAGE_BUCKET%%",
-            messagingSenderId: "%%FIREBASE_MESSAGING_SENDER_ID%%",
-            appId: "%%FIREBASE_APP_ID%%"
+            apiKey: "AIzaSyA0UFqsNRUGVwDpYcwduab8WaxoVrMxiBA",
+            authDomain: "suncontrol-d2d94.firebaseapp.com",
+            projectId: "suncontrol-d2d94",
+            storageBucket: "suncontrol-d2d94.appspot.com",
+            messagingSenderId: "434845455719",
+            appId: "1:434845455719:web:06cb665d1274c973f4cbc2"
         };
+        const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
         
         // --- INITIALIZATION ---
         const app = initializeApp(firebaseConfig);
@@ -310,7 +338,9 @@
                         <select id="colleagueName" required class="form-select w-full p-3 rounded-lg mt-1">
                             <option value="" disabled selected>Selecione um colega</option>
                         </select>
+                        <!-- NOVO: Contêiner para a pré-visualização do colega -->
                         <div id="selected-colleague-preview" class="hidden mt-3 p-3 bg-white/5 rounded-lg border border-white/10 flex items-center space-x-3">
+                            <!-- Conteúdo da pré-visualização será injetado aqui pelo JS -->
                         </div>
                     </div>
                     <div>
@@ -403,7 +433,7 @@
             const formSection = document.getElementById('form-section');
             const shiftListContainer = document.getElementById('shift-list-container');
             const supervisorActions = document.getElementById('supervisor-actions');
-            const dashboardStats = document.getElementById('dashboard-stats');
+            const dashboardStats = document.getElementById('dashboard-stats'); // Referência à seção de estatísticas
 
             if (role === 'supervisor') {
                 formSection.innerHTML = '';
@@ -411,22 +441,22 @@
                 shiftListContainer.classList.remove('lg:col-span-2');
                 shiftListContainer.classList.add('lg:col-span-3');
                 supervisorActions.classList.remove('hidden');
-                dashboardStats.classList.remove('hidden');
-            } else if (role === 'dono') {
-                formSection.innerHTML = '';
+                dashboardStats.classList.remove('hidden'); // Mostra estatísticas para supervisor
+            } else if (role === 'dono') { // Lógica para o papel 'dono'
+                formSection.innerHTML = ''; // Dono não usa formulário de troca
                 formSection.style.display = 'none';
                 shiftListContainer.classList.remove('lg:col-span-2');
                 shiftListContainer.classList.add('lg:col-span-3');
-                supervisorActions.classList.remove('hidden');
-                dashboardStats.classList.add('hidden');
+                supervisorActions.classList.remove('hidden'); // Dono pode ter acesso ao dashboard
+                dashboardStats.classList.add('hidden'); // Oculta estatísticas para dono
             }
-            else {
+            else { // Papel 'vigilante' ou outro padrão
                 formSection.innerHTML = shiftFormHTML;
                 formSection.style.display = 'block';
                 shiftListContainer.classList.remove('lg:col-span-3');
                 shiftListContainer.classList.add('lg:col-span-2');
                 supervisorActions.classList.add('hidden');
-                dashboardStats.classList.remove('hidden');
+                dashboardStats.classList.remove('hidden'); // Mostra estatísticas para vigilante (se desejar)
             }
             
             await fetchAllUsers();
@@ -450,7 +480,7 @@
                     if (user.id !== currentUserProfile.uid && user.role === 'vigilante') {
                         const option = document.createElement('option');
                         option.value = user.name;
-                        option.textContent = user.name;
+                        option.textContent = user.name; // Adicionado: Define o texto visível da opção
                         option.dataset.uid = user.id;
                         colleaguesSelect.appendChild(option);
                     }
@@ -460,8 +490,7 @@
 
         function startRealtimeListener() {
             if (unsubscribeShifts) unsubscribeShifts();
-            // CORRIGIDO: Caminho da coleção simplificado
-            const shiftsCollectionRef = collection(db, "shifts");
+            const shiftsCollectionRef = collection(db, `artifacts/${appId}/public/data/shifts`);
             const q = query(shiftsCollectionRef, orderBy('createdAt', 'desc'));
             unsubscribeShifts = onSnapshot(q, (snapshot) => {
                 allShifts = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
@@ -478,8 +507,9 @@
             shiftList.innerHTML = '';
             
             const isSupervisor = currentUserProfile.role === 'supervisor';
-            const isDono = currentUserProfile.role === 'dono';
+            const isDono = currentUserProfile.role === 'dono'; // Verifica se é 'dono'
 
+            // Para 'dono', mostra todas as trocas. Para outros, filtra.
             const visibleShifts = isDono ? allShifts : allShifts.filter(s => isSupervisor || s.requesterUid === currentUserProfile.uid || s.colleagueUid === currentUserProfile.uid);
 
             if (visibleShifts.length === 0) {
@@ -498,6 +528,7 @@
                     if (isSupervisor && shift.status === 'Confirmada - Aguardando Supervisor') {
                          actionsHtml = `<button data-id="${shift.id}" data-action="approve" class="btn btn-success text-xs font-bold py-2 px-4 rounded-full">Aprovar</button> <button data-id="${shift.id}" data-action="decline" class="btn btn-danger text-xs font-bold py-2 px-4 rounded-full">Recusar</button>`;
                     }
+                    // NOVO: Botão de lixeira para o Dono
                     if (isDono) {
                         actionsHtml += `<button data-id="${shift.id}" data-action="delete-shift" class="btn btn-danger text-xs font-bold py-2 px-4 rounded-full ml-2">
                             <i class="fa-solid fa-trash-can"></i>
@@ -522,11 +553,14 @@
                     shiftList.appendChild(card);
                 });
             }
+            // Lucide Icons ainda é usado para os ícones de status na lista de shifts
             if(typeof lucide !== 'undefined') lucide.createIcons();
-            updateDashboardStats();
+            updateDashboardStats(); // Chamado para atualizar os botões de exportar/excluir
         }
         
         function updateDashboardStats() {
+            // --- INÍCIO DA LÓGICA ADICIONADA ---
+            // 1. Calcula as contagens de cada status a partir da variável global `allShifts`
             const counts = allShifts.reduce((acc, shift) => {
                 const status = shift.status;
                 if (status === 'Aguardando Confirmação' || status === 'Confirmada - Aguardando Supervisor') {
@@ -539,16 +573,18 @@
                 return acc;
             }, { pending: 0, approved: 0, rejected: 0 });
 
+            // 2. Atualiza o conteúdo de texto dos elementos HTML com os valores calculados
             document.getElementById('count-total').textContent = allShifts.length;
             document.getElementById('count-pending').textContent = counts.pending;
             document.getElementById('count-approved').textContent = counts.approved;
             document.getElementById('count-rejected').textContent = counts.rejected;
+            // --- FIM DA LÓGICA ADICIONADA ---
 
             const dashboardStats = document.getElementById('dashboard-stats');
             const exportContainer = document.getElementById('export-container');
 
             if (currentUserProfile && currentUserProfile.role === 'dono') {
-                dashboardStats.classList.add('hidden');
+                dashboardStats.classList.add('hidden'); // Oculta a seção de estatísticas para o dono
                 exportContainer.innerHTML = `
                     <button id="delete-all-shifts-btn" class="btn btn-danger text-xs font-semibold py-2 px-3 rounded-full">Excluir Todas</button>
                     <button id="export-json" class="btn btn-secondary text-xs font-semibold py-2 px-3 rounded-full">Exportar JSON</button>
@@ -558,15 +594,16 @@
                     showActionModal('Excluir Todas as Trocas', 'Tem certeza que deseja EXCLUIR TODAS as trocas? Esta ação é irreversível.', 'btn-danger', deleteAllShifts);
                 });
             } else if (currentUserProfile && currentUserProfile.role === 'supervisor') {
-                dashboardStats.classList.remove('hidden');
+                dashboardStats.classList.remove('hidden'); // Mostra a seção de estatísticas para o supervisor
                 exportContainer.innerHTML = `<button id="export-json" class="btn btn-secondary text-xs font-semibold py-2 px-3 rounded-full">Exportar JSON</button>`;
                 document.getElementById('export-json').addEventListener('click', exportDataAsJson);
             } else {
-                dashboardStats.classList.remove('hidden');
+                dashboardStats.classList.remove('hidden'); // Mostra a seção de estatísticas para vigilante
                 exportContainer.innerHTML = '';
             }
         }
 
+        // Funções de tratamento de evento (adicione-as no escopo onde setupEventListeners está)
         function handleLogout() {
             signOut(auth);
         }
@@ -597,9 +634,9 @@
                 status: 'Aguardando Confirmação',
                 createdAt: serverTimestamp()
             };
-            // CORRIGIDO: Caminho da coleção simplificado
-            await addDoc(collection(db, "shifts"), newShiftData);
+            await addDoc(collection(db, `artifacts/${appId}/public/data/shifts`), newShiftData);
             e.target.reset();
+            // Após enviar a solicitação, limpa a pré-visualização do colega
             document.getElementById('selected-colleague-preview').classList.add('hidden');
             document.getElementById('selected-colleague-preview').innerHTML = '';
         }
@@ -622,8 +659,7 @@
                 if (!shift) return;
 
                 const performUpdate = async (newStatus) => {
-                    // CORRIGIDO: Caminho do documento simplificado
-                    await updateDoc(doc(db, "shifts", id), { status: newStatus });
+                    await updateDoc(doc(db, `artifacts/${appId}/public/data/shifts`, id), { status: newStatus });
                 };
 
                 const actions = {
@@ -631,7 +667,7 @@
                     reject: () => showActionModal('Recusar Troca', 'Tem certeza que deseja recusar?', 'btn-danger', () => performUpdate('Recusada')),
                     approve: () => showActionModal('Aprovar Troca', 'Confirma a aprovação final?', 'btn-success', () => performUpdate('Aprovada')),
                     decline: () => showActionModal('Recusar Troca', 'Tem certeza que deseja recusar?', 'btn-danger', () => performUpdate('Recusada pelo Supervisor')),
-                    'delete-shift': () => showActionModal('Excluir Troca', 'Tem certeza que deseja excluir esta troca?', 'btn-danger', () => deleteShift(id))
+                    'delete-shift': () => showActionModal('Excluir Troca', 'Tem certeza que deseja excluir esta troca?', 'btn-danger', () => deleteShift(id)) // NOVO: Ação de excluir
                 };
                 if (actions[action]) actions[action]();
             }
@@ -641,6 +677,7 @@
             const colleagueSelect = document.getElementById('colleagueName');
             const previewContainer = document.getElementById('selected-colleague-preview');
             
+            // Se a opção padrão ou nenhuma opção válida for selecionada, oculta a pré-visualização
             if (!colleagueSelect.value || colleagueSelect.selectedIndex === 0) {
                 previewContainer.classList.add('hidden');
                 previewContainer.innerHTML = '';
@@ -652,12 +689,21 @@
 
             if (selectedColleagueUid) {
                 const selectedColleague = allUsers.get(selectedColleagueUid);
+
                 if (selectedColleague) {
                     const photo = selectedColleague.photoURL || `https://placehold.co/40x40/1a1a1a/f0f0f0?text=${selectedColleague.name.charAt(0)}`;
                     const posto = selectedColleague.posto || 'Não informado';
                     const cidade = selectedColleague.cidade || 'Não informado';
-                    previewContainer.innerHTML = `<img src="${photo}" class="w-10 h-10 rounded-full object-cover border border-white/20"><div><p class="font-bold text-white">${selectedColleague.name}</p><p class="text-xs text-gray-400">Posto: ${posto}</p><p class="text-xs text-gray-400">Cidade: ${cidade}</p></div>`;
-                    previewContainer.classList.remove('hidden');
+
+                    previewContainer.innerHTML = `
+                        <img src="${photo}" class="w-10 h-10 rounded-full object-cover border border-white/20">
+                        <div>
+                            <p class="font-bold text-white">${selectedColleague.name}</p>
+                            <p class="text-xs text-gray-400">Posto: ${posto}</p>
+                            <p class="text-xs text-gray-400">Cidade: ${cidade}</p>
+                        </div>
+                    `;
+                    previewContainer.classList.remove('hidden'); // Mostra o contêiner
                 } else {
                     previewContainer.classList.add('hidden');
                     previewContainer.innerHTML = '';
@@ -674,39 +720,63 @@
             const openDashboardBtn = document.getElementById('open-dashboard-btn');
             const shiftList = document.getElementById('shift-list');
 
+            // Remova listeners antigos para evitar duplicação
             if (logoutBtn) logoutBtn.removeEventListener('click', handleLogout);
             if (profileArea) profileArea.removeEventListener('click', handleProfileClick);
             if (openDashboardBtn) openDashboardBtn.removeEventListener('click', handleOpenDashboard);
             if (shiftList) shiftList.removeEventListener('click', handleShiftListClick);
 
+            // Adicione os listeners
             if (logoutBtn) logoutBtn.addEventListener('click', handleLogout);
             if (profileArea) profileArea.addEventListener('click', handleProfileClick);
             if (openDashboardBtn) openDashboardBtn.addEventListener('click', handleOpenDashboard);
             if (shiftList) shiftList.addEventListener('click', handleShiftListClick);
 
+
             const shiftFormContainer = document.getElementById('form-section');
             if(shiftFormContainer.hasChildNodes()) {
                 const shiftFormInner = shiftFormContainer.querySelector('#shift-form-inner');
-                const colleagueNameSelect = document.getElementById('colleagueName');
+                const colleagueNameSelect = document.getElementById('colleagueName'); // Obtenha a referência aqui
+
+                // Remova e adicione o listener para o formulário de shift
                 if (shiftFormInner) shiftFormInner.removeEventListener('submit', handleShiftFormSubmit);
                 if (shiftFormInner) shiftFormInner.addEventListener('submit', handleShiftFormSubmit);
-                if (colleagueNameSelect) colleagueNameSelect.removeEventListener('change', handleColleagueSelectChange);
-                if (colleagueNameSelect) colleagueNameSelect.addEventListener('change', handleColleagueSelectChange);
+
+                // Remova e adicione o listener para o SELECT de colega
+                if (colleagueNameSelect) colleagueNameSelect.removeEventListener('change', handleColleagueSelectChange); // Remover
+                if (colleagueNameSelect) colleagueNameSelect.addEventListener('change', handleColleagueSelectChange); // Adicionar
             }
         }
 
+        // --- PROFILE MODAL FUNCTIONS ---
         function openProfileModal(user, isOwnProfile) {
             const modalEl = createAndAppendModal(profileModalHTML(user, isOwnProfile));
             if (!modalEl) return;
+
             if (isOwnProfile) {
                 const viewMode = modalEl.querySelector('#profile-view-mode');
                 const editMode = modalEl.querySelector('#profile-edit-mode');
-                const handleEditProfileClick = () => { viewMode.classList.add('hidden'); editMode.classList.remove('hidden'); };
-                const handleCancelEditClick = () => { viewMode.classList.remove('hidden'); editMode.classList.add('hidden'); };
+                
+                // Funções nomeadas para os listeners internos do modal
+                const handleEditProfileClick = () => {
+                    viewMode.classList.add('hidden');
+                    editMode.classList.remove('hidden');
+                };
+                const handleCancelEditClick = () => {
+                    viewMode.classList.remove('hidden');
+                    editMode.classList.add('hidden');
+                };
+                // Para o submit, passamos a modalEl para saveProfileData
                 const handleProfileEditSubmit = (e) => saveProfileData(e, modalEl);
+
                 const editProfileBtn = modalEl.querySelector('#edit-profile-btn');
                 const cancelEditBtn = modalEl.querySelector('#cancel-edit-btn');
-                const profileEditForm = editMode;
+                const profileEditForm = editMode; // O formulário em si é o elemento para o listener de submit
+
+                if (editProfileBtn) editProfileBtn.removeEventListener('click', handleEditProfileClick);
+                if (cancelEditBtn) cancelEditBtn.removeEventListener('click', handleCancelEditClick);
+                if (profileEditForm) profileEditForm.removeEventListener('submit', handleProfileEditSubmit);
+
                 if (editProfileBtn) editProfileBtn.addEventListener('click', handleEditProfileClick);
                 if (cancelEditBtn) cancelEditBtn.addEventListener('click', handleCancelEditClick);
                 if (profileEditForm) profileEditForm.addEventListener('submit', handleProfileEditSubmit);
@@ -718,26 +788,38 @@
             const photoURL = document.getElementById('profile-photo-url').value;
             const posto = document.getElementById('profile-posto').value;
             const cidade = document.getElementById('profile-cidade').value;
+
             if (!currentUserProfile || !currentUserProfile.uid) {
-                console.error("Erro: currentUserProfile ou UID indefinido.");
-                alert("Erro ao salvar o perfil.");
+                console.error("Erro: currentUserProfile ou UID indefinido ao tentar salvar o perfil.");
+                alert("Erro ao salvar o perfil. Por favor, recarregue a página e tente novamente.");
                 hideModalContainer(modalEl);
                 return;
             }
+
             const dataToUpdate = { photoURL, posto };
-            if (!currentUserProfile.cidade && cidade) dataToUpdate.cidade = cidade;
+            if (!currentUserProfile.cidade && cidade) {
+                dataToUpdate.cidade = cidade;
+            }
+
             const userDocRef = doc(db, "users", currentUserProfile.uid);
             try {
                 await updateDoc(userDocRef, dataToUpdate);
+                
                 hideModalContainer(modalEl);
+                
                 location.reload(true);
             } catch (error) {
                 console.error("Erro ao salvar as alterações do perfil:", error);
-                alert("Não foi possível salvar as alterações.");
-                hideModalContainer(modalEl);
+                if (error.code === 'permission-denied' || error.code === 'missing-or-insufficient-permissions') {
+                    alert("Você não tem permissão para realizar esta alteração. Verifique suas regras de segurança do Firestore.");
+                } else {
+                    alert("Não foi possível salvar as alterações. Verifique o console para mais detalhes.");
+                }
+                hideModalContainer(modalEl); // Em caso de erro, o modal ainda precisa ser fechado
             }
         }
 
+        // --- DASHBOARD MODAL FUNCTIONS ---
         function openDashboardModal() {
             const modalEl = createAndAppendModal(dashboardModalHTML());
             if (!modalEl) return;
@@ -747,26 +829,44 @@
         function initializeDashboardCharts() {
             const statusCtx = document.getElementById('statusChart').getContext('2d');
             if(statusChart) statusChart.destroy();
+            
             const statusCounts = allShifts.reduce((acc, s) => { acc[s.status] = (acc[s.status] || 0) + 1; return acc; }, {});
             statusChart = new Chart(statusCtx, { type: 'doughnut', data: { labels: Object.keys(statusCounts), datasets: [{ data: Object.values(statusCounts), backgroundColor: ['#f59e0b', '#3b82f6', '#22c55e', '#ef4444', '#ef4444'], borderColor: '#1c1c1c', borderWidth: 4 }] }, options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'top', labels: { color: '#f0f0f0' } } } } });
+
             const monthlyCtx = document.getElementById('monthlyChart').getContext('2d');
             if(monthlyChart) monthlyChart.destroy();
+
             const monthlyCounts = allShifts.reduce((acc, s) => { 
-                if(s.createdAt && typeof s.createdAt.toDate === 'function'){ const m = s.createdAt.toDate().toLocaleString('default', {month:'short'}); acc[m] = (acc[m]||0)+1; } 
-                else if (s.createdAt instanceof Date) { const m = s.createdAt.toLocaleString('default', {month:'short'}); acc[m] = (acc[m]||0)+1; }
+                if(s.createdAt && typeof s.createdAt.toDate === 'function'){ 
+                    const m = s.createdAt.toDate().toLocaleString('default', {month:'short'}); 
+                    acc[m] = (acc[m]||0)+1; 
+                } else if (s.createdAt instanceof Date) { // Handle if createdAt is already a Date object
+                    const m = s.createdAt.toLocaleString('default', {month:'short'}); 
+                    acc[m] = (acc[m]||0)+1; 
+                }
                 return acc; 
             }, {});
+
             monthlyChart = new Chart(monthlyCtx, { type: 'bar', data: { labels: Object.keys(monthlyCounts).reverse(), datasets: [{ label: 'Trocas por Mês', data: Object.values(monthlyCounts).reverse(), backgroundColor: 'rgba(255, 199, 0, 0.6)', borderColor: 'rgba(255, 199, 0, 1)', borderWidth: 1 }] }, options: { responsive: true, maintainAspectRatio: false, scales: { y: { ticks: { color: '#999', stepSize: 1 } }, x: { ticks: { color: '#999' } } }, plugins: { legend: { display: false } } } });
         }
         
+        // --- UTILITY FUNCTIONS (MODAL LOGIC REBUILT) ---
         function createAndAppendModal(innerHTML) {
             const tempDiv = document.createElement('div');
             tempDiv.innerHTML = innerHTML.trim();
             const modalEl = tempDiv.firstElementChild;
             if (!modalEl) return null;
+            
             modalContainer.appendChild(modalEl);
-            modalEl.querySelectorAll('.modal-close').forEach(btn => btn.addEventListener('click', () => hideModalContainer(modalEl)));
-            modalEl.addEventListener('click', (e) => { if (e.target === modalEl) hideModalContainer(modalEl); });
+            
+            modalEl.querySelectorAll('.modal-close').forEach(btn => {
+                btn.addEventListener('click', () => hideModalContainer(modalEl));
+            });
+            
+            modalEl.addEventListener('click', (e) => {
+                if (e.target === modalEl) hideModalContainer(modalEl);
+            });
+
             showModalContainer(modalEl);
             return modalEl;
         }
@@ -791,7 +891,11 @@
             modalEl.classList.add('opacity-0');
             const content = modalEl.querySelector('.modal-content');
             if (content) content.classList.add('scale-95', 'opacity-0');
-            setTimeout(() => { if(modalContainer.contains(modalEl)) modalContainer.removeChild(modalEl); }, 300);
+            setTimeout(() => { 
+                if(modalContainer.contains(modalEl)) {
+                    modalContainer.removeChild(modalEl);
+                }
+            }, 300);
         }
         
         function formatDateTime(dateTimeString) {
@@ -811,10 +915,11 @@
             URL.revokeObjectURL(a.href);
         }
 
+        // NOVO: Função para deletar uma única troca
         async function deleteShift(shiftId) {
             try {
-                // CORRIGIDO: Caminho do documento simplificado
-                await deleteDoc(doc(db, "shifts", shiftId));
+                await deleteDoc(doc(db, `artifacts/${appId}/public/data/shifts`, shiftId));
+                // O listener em tempo real (onSnapshot) vai atualizar a UI automaticamente
                 alert('Troca excluída com sucesso!');
             } catch (error) {
                 console.error("Erro ao excluir troca:", error);
@@ -822,15 +927,18 @@
             }
         }
 
+        // NOVO: Função para deletar todas as trocas
         async function deleteAllShifts() {
             try {
-                // CORRIGIDO: Caminho da coleção simplificado
-                const shiftsRef = collection(db, "shifts");
+                const shiftsRef = collection(db, `artifacts/${appId}/public/data/shifts`);
                 const querySnapshot = await getDocs(shiftsRef);
                 const deletePromises = [];
-                querySnapshot.forEach((doc) => deletePromises.push(deleteDoc(doc.ref)));
+                querySnapshot.forEach((doc) => {
+                    deletePromises.push(deleteDoc(doc.ref));
+                });
                 await Promise.all(deletePromises);
                 alert('Todas as trocas foram excluídas com sucesso!');
+                // O listener em tempo real vai atualizar a UI automaticamente
             } catch (error) {
                 console.error("Erro ao excluir todas as trocas:", error);
                 alert("Não foi possível excluir todas as trocas. Verifique as permissões.");
