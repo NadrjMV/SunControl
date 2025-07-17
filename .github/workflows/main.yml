@@ -1,105 +1,55 @@
 # Nome do Workflow
-
 name: Deploy to GitHub Pages
 
-
-
 # Gatilho: Executa sempre que houver um push na branch 'main'
-
 on:
+  push:
+    branches: [ "main" ]
 
-  push:
-
-    branches: [ "main" ]
-
-
-
-# Permissões para que a Action possa fazer o deploy
-
+# Permissões necessárias para que a Action possa fazer o deploy para o GitHub Pages
 permissions:
+  contents: read
+  pages: write
+  id-token: write
 
-  contents: read
-
-  pages: write
-
-  id-token: write
-
-
-
-# Tarefas a serem executadas
-
+# Define as tarefas a serem executadas
 jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    
+    # Define o ambiente de deploy para o GitHub Pages, necessário para o deploy
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
 
-  build-and-deploy:
+    # Define a sequência de passos do job
+    steps:
+      # 1. Baixa o código do repositório para a máquina virtual
+      - name: Checkout code
+        uses: actions/checkout@v4
 
-    runs-on: ubuntu-latest
+      # 2. Encontra e substitui os placeholders pelas chaves secretas do Firebase
+      - name: Replace Firebase Config Placeholders
+        run: |
+          sed -i "s|%%FIREBASE_API_KEY%%|${{ secrets.FIREBASE_API_KEY }}|g" index.html
+          sed -i "s|%%FIREBASE_AUTH_DOMAIN%%|${{ secrets.FIREBASE_AUTH_DOMAIN }}|g" index.html
+          sed -i "s|%%FIREBASE_PROJECT_ID%%|${{ secrets.FIREBASE_PROJECT_ID }}|g" index.html
+          sed -i "s|%%FIREBASE_STORAGE_BUCKET%%|${{ secrets.FIREBASE_STORAGE_BUCKET }}|g" index.html
+          sed -i "s|%%FIREBASE_MESSAGING_SENDER_ID%%|${{ secrets.FIREBASE_MESSAGING_SENDER_ID }}|g" index.html
+          sed -i "s|%%FIREBASE_APP_ID%%|${{ secrets.FIREBASE_APP_ID }}|g" index.html
 
-    
+      # 3. Configura o ambiente para o GitHub Pages
+      - name: Setup Pages
+        uses: actions/configure-pages@v5
 
-    # Bloco que corrige o erro de "Missing environment"
+      # 4. Cria o artefato (a pasta com o site final) e faz o upload
+      - name: Upload artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          # Publica a partir da raiz do projeto, já que o index.html está lá
+          path: '.'
 
-    environment:
-
-      name: github-pages
-
-      url: ${{ steps.deployment.outputs.page_url }}
-
-
-
-    steps:
-
-      # 1. Baixa o código do seu repositório para a máquina virtual
-
-      - name: Checkout code
-
-        uses: actions/checkout@v4
-
-
-
-      # 2. Encontra e substitui os placeholders pelas chaves secretas
-
-      - name: Replace Firebase Config Placeholders
-
-        run: |
-
-          sed -i "s|%%FIREBASE_API_KEY%%|${{ secrets.FIREBASE_API_KEY }}|g" index.html
-
-          sed -i "s|%%FIREBASE_AUTH_DOMAIN%%|${{ secrets.FIREBASE_AUTH_DOMAIN }}|g" index.html
-
-          sed -i "s|%%FIREBASE_PROJECT_ID%%|${{ secrets.FIREBASE_PROJECT_ID }}|g" index.html
-
-          sed -i "s|%%FIREBASE_STORAGE_BUCKET%%|${{ secrets.FIREBASE_STORAGE_BUCKET }}|g" index.html
-
-          sed -i "s|%%FIREBASE_MESSAGING_SENDER_ID%%|${{ secrets.FIREBASE_MESSAGING_SENDER_ID }}|g" index.html
-
-          sed -i "s|%%FIREBASE_APP_ID%%|${{ secrets.FIREBASE_APP_ID }}|g" index.html
-
-
-
-      # 3. Configura o ambiente para o deploy no GitHub Pages
-
-      - name: Setup Pages
-
-        uses: actions/configure-pages@v5
-
-
-
-      # 4. Constrói o artefato (a pasta com o site final) e faz o upload
-
-      - name: Upload artifact
-
-        uses: actions/upload-pages-artifact@v3
-
-        with:
-
-          path: '.' # Publica a partir da raiz do projeto
-
-
-
-      # 5. Faz o deploy final para o GitHub Pages
-
-      - name: Deploy to GitHub Pages
-
-        id: deployment
-
-        uses: actions/deploy-pages@v4
+      # 5. Faz o deploy final para o GitHub Pages
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
