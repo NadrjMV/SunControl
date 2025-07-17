@@ -233,7 +233,12 @@
                 <div class="modal-content glassmorphism rounded-2xl p-8 max-w-sm w-full shadow-lg scale-95 opacity-0">
                     <div class="flex justify-between items-center mb-6">
                         <h4 class="text-xl font-bold">${title}</h4>
-                        <button class="modal-close p-2 rounded-full hover:bg-white/10"><i data-lucide="x" class="text-white"></i></button>
+                        <button class="modal-close p-2 rounded-full hover:bg-white/10">
+                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-5 h-5 text-white">
+                                <line x1="18" y1="6" x2="6" y2="18"></line>
+                                <line x1="6" y1="6" x2="18" y2="18"></line>
+                            </svg>
+                        </button>
                     </div>
                     <p class="text-gray-300 mb-8">${message}</p>
                     <div class="flex justify-end space-x-4">
@@ -253,7 +258,12 @@
                 <div class="modal-content glassmorphism rounded-2xl p-8 max-w-lg w-full shadow-lg scale-95 opacity-0">
                     <div class="flex justify-between items-center mb-6">
                         <h3 class="text-2xl font-bold">${isOwnProfile ? 'Meu Perfil' : `Perfil de ${user.name.split(' ')[0]}`}</h3>
-                        <button class="modal-close p-2 rounded-full hover:bg-white/10"><i data-lucide="x" class="text-white"></i></button>
+                        <button class="modal-close p-2 rounded-full hover:bg-white/10">
+                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-5 h-5 text-white">
+                                <line x1="18" y1="6" x2="6" y2="18"></line>
+                                <line x1="6" y1="6" x2="18" y2="18"></line>
+                            </svg>
+                        </button>
                     </div>
                     <div id="profile-view-mode">
                         <div class="space-y-4">
@@ -300,7 +310,12 @@
                 <div class="modal-content glassmorphism rounded-2xl p-8 max-w-4xl w-full shadow-lg scale-95 opacity-0">
                     <div class="flex justify-between items-center mb-6">
                         <h3 class="text-2xl font-bold">Dashboard de Ocorrências</h3>
-                        <button class="modal-close p-2 rounded-full hover:bg-white/10"><i data-lucide="x" class="text-white"></i></button>
+                        <button class="modal-close p-2 rounded-full hover:bg-white/10">
+                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-5 h-5 text-white">
+                                <line x1="18" y1="6" x2="6" y2="18"></line>
+                                <line x1="6" y1="6" x2="18" y2="18"></line>
+                            </svg>
+                        </button>
                     </div>
                     <div class="grid md:grid-cols-2 gap-8">
                         <div class="h-80"><canvas id="statusChart"></canvas></div>
