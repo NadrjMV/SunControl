@@ -618,17 +618,33 @@
             const posto = document.getElementById('profile-posto').value;
             const cidade = document.getElementById('profile-cidade').value;
 
+            if (!currentUserProfile || !currentUserProfile.uid) {
+                console.error("Erro: currentUserProfile ou UID indefinido ao tentar salvar o perfil.");
+                alert("Erro ao salvar o perfil. Por favor, recarregue a página e tente novamente.");
+                hideModalContainer(modalEl);
+                return;
+            }
+
             const dataToUpdate = { photoURL, posto };
-            if (!currentUserProfile.cidade && cidade) dataToUpdate.cidade = cidade;
+            if (!currentUserProfile.cidade && cidade) {
+                dataToUpdate.cidade = cidade;
+            }
 
             const userDocRef = doc(db, "users", currentUserProfile.uid);
             try {
                 await updateDoc(userDocRef, dataToUpdate);
-                await fetchAllUsers();
-                currentUserProfile = allUsers.get(currentUserProfile.uid);
-                initializeAppUI();
+                
                 hideModalContainer(modalEl);
-            } catch (error) { alert("Não foi possível salvar as alterações."); }
+                
+                location.reload(true);
+            } catch (error) {
+                console.error("Erro ao salvar as alterações do perfil:", error);
+                if (error.code === 'permission-denied' || error.code === 'missing-or-insufficient-permissions') {
+                    alert("Você não tem permissão para realizar esta alteração. Verifique suas regras de segurança do Firestore.");
+                } else {
+                    alert("Não foi possível salvar as alterações. Verifique o console para mais detalhes.");
+                }
+            }
         }
 
         // --- DASHBOARD MODAL FUNCTIONS ---
