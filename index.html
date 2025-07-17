@@ -14,7 +14,8 @@
     
     <link rel="icon" type="image/png" href="https://i.postimg.cc/V6HS85m6/SUN-CONTROL-removebg.png">
 
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" integrity="sha512-SnH5WK+bZxgPHs44uWIX+LLJAJ9/2PkPKZ5QiAj6Ta86w+fsb2TkcmfRyVX3pBnMFcV7oQPJkl9QevSCWr3W6A==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+    <!-- Font Awesome CSS -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" xintegrity="sha512-SnH5WK+bZxgPHs44uWIX+LLJAJ9/2PkPKZ5QiAj6Ta86w+fsb2TkcmfRyVX3pBnMFcV7oQPJkl9QevSCWr3W6A==" crossorigin="anonymous" referrerpolicy="no-referrer" />
 
     <!-- Fontes -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -77,11 +78,11 @@
         .clickable-name { cursor: pointer; text-decoration: underline; text-decoration-color: rgba(255, 199, 0, 0.5); transition: text-decoration-color 0.3s; }
         .clickable-name:hover { text-decoration-color: rgba(255, 199, 0, 1); }
 
-.verified-badge {
-            color: #1DA1F2;
-            font-size: 0.8em;
-            vertical-align: middle;
-            margin-left: 0.25rem;
+        .verified-badge {
+            color: #1DA1F2; /* Azul do Twitter/Verificado */
+            font-size: 0.8em; /* Ajusta o tamanho do ícone para ser menor que o texto */
+            vertical-align: middle; /* Ajuda a alinhar com o texto */
+            margin-left: 0.25rem; /* Um pequeno espaço à esquerda do ícone */
         }
 
     </style>
@@ -175,6 +176,7 @@
                 </div>
             </div>
         </main>
+        <!-- FOOTER -->
         <footer class="py-6 px-6 md:px-12 text-center text-gray-400 text-sm">
             Desenvolvido por <a href="https://www.linkedin.com/in/jordan-luiz-3ab157363?utm_source=share&utm_campaign=share_via&utm_content=profile&utm_medium=ios_app" target="_blank" class="font-bold text-white hover:underline whitespace-nowrap">@jordanlvs <i class="fa-solid fa-circle-check verified-badge"></i></a> (Proprietário da <a href="https://www.instagram.com/weblv.dev/" target="_blank" class="font-bold text-white hover:underline">WebLv)</a>        
         </footer>
@@ -333,6 +335,10 @@
                         <select id="colleagueName" required class="form-select w-full p-3 rounded-lg mt-1">
                             <option value="" disabled selected>Selecione um colega</option>
                         </select>
+                        <!-- NOVO: Contêiner para a pré-visualização do colega -->
+                        <div id="selected-colleague-preview" class="hidden mt-3 p-3 bg-white/5 rounded-lg border border-white/10 flex items-center space-x-3">
+                            <!-- Conteúdo da pré-visualização será injetado aqui pelo JS -->
+                        </div>
                     </div>
                     <div>
                          <label class="text-sm font-medium text-gray-300">Seu plantão atual (que você quer trocar)</label>
@@ -460,7 +466,7 @@
                     if (user.id !== currentUserProfile.uid && user.role === 'vigilante') {
                         const option = document.createElement('option');
                         option.value = user.name;
-                        option.textContent = user.name;
+                        option.textContent = user.name; // Adicionado: Define o texto visível da opção
                         option.dataset.uid = user.id;
                         colleaguesSelect.appendChild(option);
                     }
@@ -543,68 +549,148 @@
             }
         }
 
-        function setupEventListeners() {
-            document.getElementById('logout-btn').addEventListener('click', () => signOut(auth));
-            document.getElementById('profile-area').addEventListener('click', () => openProfileModal(currentUserProfile, true));
+        // Funções de tratamento de evento (adicione-as no escopo onde setupEventListeners está)
+        function handleLogout() {
+            signOut(auth);
+        }
+
+        function handleProfileClick() {
+            openProfileModal(currentUserProfile, true);
+        }
+
+        function handleOpenDashboard() {
+            openDashboardModal();
+        }
+
+        async function handleShiftFormSubmit(e) {
+            e.preventDefault();
+            const colleagueSelect = document.getElementById('colleagueName');
+            const selectedOption = colleagueSelect.options[colleagueSelect.selectedIndex];
+            const colleagueName = selectedOption.value;
+            const colleagueUid = selectedOption.dataset.uid;
+
+            if (!colleagueUid) { alert('Por favor, selecione um colega válido da lista.'); return; }
             
+            const newShiftData = {
+                requester: currentUserProfile.name, requesterUid: currentUserProfile.uid,
+                colleague: colleagueName, colleagueUid: colleagueUid,
+                originalDate: document.getElementById('originalDate').value,
+                desiredDate: document.getElementById('desiredDate').value,
+                reason: document.getElementById('reason').value,
+                status: 'Aguardando Confirmação',
+                createdAt: serverTimestamp()
+            };
+            await addDoc(collection(db, `artifacts/${appId}/public/data/shifts`), newShiftData);
+            e.target.reset();
+            // Após enviar a solicitação, limpa a pré-visualização do colega
+            document.getElementById('selected-colleague-preview').classList.add('hidden');
+            document.getElementById('selected-colleague-preview').innerHTML = '';
+        }
+
+        function handleShiftListClick(e) {
+            const nameSpan = e.target.closest('.clickable-name');
+            const actionButton = e.target.closest('button');
+
+            if (nameSpan) {
+                const uid = nameSpan.dataset.uid;
+                const userToView = allUsers.get(uid);
+                if (userToView) openProfileModal(userToView, uid === currentUserProfile.uid);
+                return;
+            }
+
+            if (actionButton) {
+                const id = actionButton.dataset.id;
+                const action = actionButton.dataset.action;
+                const shift = allShifts.find(s => s.id === id);
+                if (!shift) return;
+
+                const performUpdate = async (newStatus) => {
+                    await updateDoc(doc(db, `artifacts/${appId}/public/data/shifts`, id), { status: newStatus });
+                };
+
+                const actions = {
+                    accept: () => showActionModal('Aceitar Troca', `Confirma a troca do plantão?`, 'btn-success', () => performUpdate('Confirmada - Aguardando Supervisor')),
+                    reject: () => showActionModal('Recusar Troca', 'Tem certeza que deseja recusar?', 'btn-danger', () => performUpdate('Recusada')),
+                    approve: () => showActionModal('Aprovar Troca', 'Confirma a aprovação final?', 'btn-success', () => performUpdate('Aprovada')),
+                    decline: () => showActionModal('Recusar Troca', 'Tem certeza que deseja recusar?', 'btn-danger', () => performUpdate('Recusada pelo Supervisor'))
+                };
+                if (actions[action]) actions[action]();
+            }
+        }
+
+        function handleColleagueSelectChange() {
+            const colleagueSelect = document.getElementById('colleagueName');
+            const previewContainer = document.getElementById('selected-colleague-preview');
+            
+            // Se a opção padrão ou nenhuma opção válida for selecionada, oculta a pré-visualização
+            if (!colleagueSelect.value || colleagueSelect.selectedIndex === 0) {
+                previewContainer.classList.add('hidden');
+                previewContainer.innerHTML = '';
+                return;
+            }
+
+            const selectedOption = colleagueSelect.options[colleagueSelect.selectedIndex];
+            const selectedColleagueUid = selectedOption.dataset.uid;
+
+            if (selectedColleagueUid) {
+                const selectedColleague = allUsers.get(selectedColleagueUid);
+
+                if (selectedColleague) {
+                    const photo = selectedColleague.photoURL || `https://placehold.co/40x40/1a1a1a/f0f0f0?text=${selectedColleague.name.charAt(0)}`;
+                    const posto = selectedColleague.posto || 'Não informado';
+                    const cidade = selectedColleague.cidade || 'Não informado';
+
+                    previewContainer.innerHTML = `
+                        <img src="${photo}" class="w-10 h-10 rounded-full object-cover border border-white/20">
+                        <div>
+                            <p class="font-bold text-white">${selectedColleague.name}</p>
+                            <p class="text-xs text-gray-400">Posto: ${posto}</p>
+                            <p class="text-xs text-gray-400">Cidade: ${cidade}</p>
+                        </div>
+                    `;
+                    previewContainer.classList.remove('hidden'); // Mostra o contêiner
+                } else {
+                    previewContainer.classList.add('hidden');
+                    previewContainer.innerHTML = '';
+                }
+            } else {
+                previewContainer.classList.add('hidden');
+                previewContainer.innerHTML = '';
+            }
+        }
+
+        function setupEventListeners() {
+            const logoutBtn = document.getElementById('logout-btn');
+            const profileArea = document.getElementById('profile-area');
             const openDashboardBtn = document.getElementById('open-dashboard-btn');
-            if(openDashboardBtn) openDashboardBtn.addEventListener('click', openDashboardModal);
+            const shiftList = document.getElementById('shift-list');
+
+            // Remova listeners antigos para evitar duplicação
+            if (logoutBtn) logoutBtn.removeEventListener('click', handleLogout);
+            if (profileArea) profileArea.removeEventListener('click', handleProfileClick);
+            if (openDashboardBtn) openDashboardBtn.removeEventListener('click', handleOpenDashboard);
+            if (shiftList) shiftList.removeEventListener('click', handleShiftListClick);
+
+            // Adicione os listeners
+            if (logoutBtn) logoutBtn.addEventListener('click', handleLogout);
+            if (profileArea) profileArea.addEventListener('click', handleProfileClick);
+            if (openDashboardBtn) openDashboardBtn.addEventListener('click', handleOpenDashboard);
+            if (shiftList) shiftList.addEventListener('click', handleShiftListClick);
+
 
             const shiftFormContainer = document.getElementById('form-section');
             if(shiftFormContainer.hasChildNodes()) {
-                shiftFormContainer.querySelector('#shift-form-inner').addEventListener('submit', async (e) => {
-                    e.preventDefault();
-                    const colleagueSelect = document.getElementById('colleagueName');
-                    const selectedOption = colleagueSelect.options[colleagueSelect.selectedIndex];
-                    const colleagueName = selectedOption.value;
-                    const colleagueUid = selectedOption.dataset.uid;
+                const shiftFormInner = shiftFormContainer.querySelector('#shift-form-inner');
+                const colleagueNameSelect = document.getElementById('colleagueName'); // Obtenha a referência aqui
 
-                    if (!colleagueUid) { alert('Por favor, selecione um colega válido da lista.'); return; }
-                    
-                    const newShiftData = {
-                        requester: currentUserProfile.name, requesterUid: currentUserProfile.uid,
-                        colleague: colleagueName, colleagueUid: colleagueUid,
-                        originalDate: document.getElementById('originalDate').value,
-                        desiredDate: document.getElementById('desiredDate').value,
-                        reason: document.getElementById('reason').value,
-                        status: 'Aguardando Confirmação',
-                        createdAt: serverTimestamp()
-                    };
-                    await addDoc(collection(db, `artifacts/${appId}/public/data/shifts`), newShiftData);
-                    e.target.reset();
-                });
+                // Remova e adicione o listener para o formulário de shift
+                if (shiftFormInner) shiftFormInner.removeEventListener('submit', handleShiftFormSubmit);
+                if (shiftFormInner) shiftFormInner.addEventListener('submit', handleShiftFormSubmit);
+
+                // Remova e adicione o listener para o SELECT de colega
+                if (colleagueNameSelect) colleagueNameSelect.removeEventListener('change', handleColleagueSelectChange); // Remover
+                if (colleagueNameSelect) colleagueNameSelect.addEventListener('change', handleColleagueSelectChange); // Adicionar
             }
-
-            document.getElementById('shift-list').addEventListener('click', (e) => {
-                const nameSpan = e.target.closest('.clickable-name');
-                const actionButton = e.target.closest('button');
-
-                if (nameSpan) {
-                    const uid = nameSpan.dataset.uid;
-                    const userToView = allUsers.get(uid);
-                    if (userToView) openProfileModal(userToView, uid === currentUserProfile.uid);
-                    return;
-                }
-
-                if (actionButton) {
-                    const id = actionButton.dataset.id;
-                    const action = actionButton.dataset.action;
-                    const shift = allShifts.find(s => s.id === id);
-                    if (!shift) return;
-
-                    const performUpdate = async (newStatus) => {
-                        await updateDoc(doc(db, `artifacts/${appId}/public/data/shifts`, id), { status: newStatus });
-                    };
-
-                    const actions = {
-                        accept: () => showActionModal('Aceitar Troca', `Confirma a troca do plantão?`, 'btn-success', () => performUpdate('Confirmada - Aguardando Supervisor')),
-                        reject: () => showActionModal('Recusar Troca', 'Tem certeza que deseja recusar?', 'btn-danger', () => performUpdate('Recusada')),
-                        approve: () => showActionModal('Aprovar Troca', 'Confirma a aprovação final?', 'btn-success', () => performUpdate('Aprovada')),
-                        decline: () => showActionModal('Recusar Troca', 'Tem certeza que deseja recusar?', 'btn-danger', () => performUpdate('Recusada pelo Supervisor'))
-                    };
-                    if (actions[action]) actions[action]();
-                }
-            });
         }
 
         // --- PROFILE MODAL FUNCTIONS ---
@@ -616,15 +702,29 @@
                 const viewMode = modalEl.querySelector('#profile-view-mode');
                 const editMode = modalEl.querySelector('#profile-edit-mode');
                 
-                modalEl.querySelector('#edit-profile-btn').addEventListener('click', () => {
+                // Funções nomeadas para os listeners internos do modal
+                const handleEditProfileClick = () => {
                     viewMode.classList.add('hidden');
                     editMode.classList.remove('hidden');
-                });
-                modalEl.querySelector('#cancel-edit-btn').addEventListener('click', () => {
+                };
+                const handleCancelEditClick = () => {
                     viewMode.classList.remove('hidden');
                     editMode.classList.add('hidden');
-                });
-                editMode.addEventListener('submit', (e) => saveProfileData(e, modalEl));
+                };
+                // Para o submit, passamos a modalEl para saveProfileData
+                const handleProfileEditSubmit = (e) => saveProfileData(e, modalEl);
+
+                const editProfileBtn = modalEl.querySelector('#edit-profile-btn');
+                const cancelEditBtn = modalEl.querySelector('#cancel-edit-btn');
+                const profileEditForm = editMode; // O formulário em si é o elemento para o listener de submit
+
+                if (editProfileBtn) editProfileBtn.removeEventListener('click', handleEditProfileClick);
+                if (cancelEditBtn) cancelEditBtn.removeEventListener('click', handleCancelEditClick);
+                if (profileEditForm) profileEditForm.removeEventListener('submit', handleProfileEditSubmit);
+
+                if (editProfileBtn) editProfileBtn.addEventListener('click', handleEditProfileClick);
+                if (cancelEditBtn) cancelEditBtn.addEventListener('click', handleCancelEditClick);
+                if (profileEditForm) profileEditForm.addEventListener('submit', handleProfileEditSubmit);
             }
         }
 
@@ -660,6 +760,7 @@
                 } else {
                     alert("Não foi possível salvar as alterações. Verifique o console para mais detalhes.");
                 }
+                hideModalContainer(modalEl); // Em caso de erro, o modal ainda precisa ser fechado
             }
         }
 
@@ -671,15 +772,26 @@
         }
         
         function initializeDashboardCharts() {
-            const statusCounts = allShifts.reduce((acc, s) => { acc[s.status] = (acc[s.status] || 0) + 1; return acc; }, {});
-            const monthlyCounts = allShifts.reduce((acc, s) => { if(s.createdAt){ const m = s.createdAt.toDate().toLocaleString('default', {month:'short'}); acc[m] = (acc[m]||0)+1; } return acc; }, {});
-
             const statusCtx = document.getElementById('statusChart').getContext('2d');
             if(statusChart) statusChart.destroy();
+            
+            const statusCounts = allShifts.reduce((acc, s) => { acc[s.status] = (acc[s.status] || 0) + 1; return acc; }, {});
             statusChart = new Chart(statusCtx, { type: 'doughnut', data: { labels: Object.keys(statusCounts), datasets: [{ data: Object.values(statusCounts), backgroundColor: ['#f59e0b', '#3b82f6', '#22c55e', '#ef4444', '#ef4444'], borderColor: '#1c1c1c', borderWidth: 4 }] }, options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'top', labels: { color: '#f0f0f0' } } } } });
 
             const monthlyCtx = document.getElementById('monthlyChart').getContext('2d');
             if(monthlyChart) monthlyChart.destroy();
+
+            const monthlyCounts = allShifts.reduce((acc, s) => { 
+                if(s.createdAt && typeof s.createdAt.toDate === 'function'){ 
+                    const m = s.createdAt.toDate().toLocaleString('default', {month:'short'}); 
+                    acc[m] = (acc[m]||0)+1; 
+                } else if (s.createdAt instanceof Date) { // Handle if createdAt is already a Date object
+                    const m = s.createdAt.toLocaleString('default', {month:'short'}); 
+                    acc[m] = (acc[m]||0)+1; 
+                }
+                return acc; 
+            }, {});
+
             monthlyChart = new Chart(monthlyCtx, { type: 'bar', data: { labels: Object.keys(monthlyCounts).reverse(), datasets: [{ label: 'Trocas por Mês', data: Object.values(monthlyCounts).reverse(), backgroundColor: 'rgba(255, 199, 0, 0.6)', borderColor: 'rgba(255, 199, 0, 1)', borderWidth: 1 }] }, options: { responsive: true, maintainAspectRatio: false, scales: { y: { ticks: { color: '#999', stepSize: 1 } }, x: { ticks: { color: '#999' } } }, plugins: { legend: { display: false } } } });
         }
         
@@ -700,6 +812,8 @@
                 if (e.target === modalEl) hideModalContainer(modalEl);
             });
 
+            // Remove a chamada a lucide.createIcons() daqui, pois os SVGs estão embutidos
+            // showModalContainer já tem um setTimeout para as transições
             showModalContainer(modalEl);
             return modalEl;
         }
@@ -716,7 +830,7 @@
                 modalEl.classList.remove('opacity-0');
                 const content = modalEl.querySelector('.modal-content');
                 if (content) content.classList.remove('scale-95', 'opacity-0');
-                if(typeof lucide !== 'undefined') lucide.createIcons();
+                // Remove a chamada a lucide.createIcons() daqui também, pois os SVGs estão embutidos
             }, 10);
         }
 
