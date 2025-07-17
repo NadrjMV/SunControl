@@ -445,6 +445,7 @@
                     if (user.id !== currentUserProfile.uid && user.role === 'vigilante') {
                         const option = document.createElement('option');
                         option.value = user.name;
+                        option.textContent = user.name;
                         option.dataset.uid = user.id;
                         colleaguesSelect.appendChild(option);
                     }
