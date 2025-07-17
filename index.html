@@ -156,7 +156,8 @@
         </header>
 
         <main class="pt-24 pb-12 relative z-10">
-            <section id="dashboard-stats" class="container mx-auto px-6 md:px-12 mb-12">
+            <!-- Seção de estatísticas (oculta para 'dono') -->
+            <section id="dashboard-stats" class="container mx-auto px-6 md:px-12 mb-12 hidden">
                 <div class="grid grid-cols-2 md:grid-cols-4 gap-4 text-center">
                     <div class="glassmorphism p-4 rounded-lg"><h4 class="text-2xl font-bold text-[var(--sun-yellow)]" id="count-total">0</h4><p class="text-sm text-gray-400">Total</p></div>
                     <div class="glassmorphism p-4 rounded-lg"><h4 class="text-2xl font-bold text-yellow-500" id="count-pending">0</h4><p class="text-sm text-gray-400">Aguardando</p></div>
@@ -170,7 +171,9 @@
                 <div id="shift-list-container" class="lg:col-span-2">
                     <div class="flex justify-between items-center mb-6">
                         <h3 class="text-2xl font-bold">Histórico de Trocas</h3>
-                        <div id="export-container"></div>
+                        <div id="export-container" class="flex space-x-3">
+                            <!-- Botões de exportar e excluir tudo para o dono -->
+                        </div>
                     </div>
                     <div id="shift-list" class="space-y-4"></div>
                 </div>
@@ -198,7 +201,7 @@
         // --- SDK IMPORTS ---
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
         import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-        import { getFirestore, collection, addDoc, onSnapshot, doc, updateDoc, query, orderBy, serverTimestamp, getDoc, setDoc, getDocs, where } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        import { getFirestore, collection, addDoc, onSnapshot, doc, updateDoc, query, orderBy, serverTimestamp, getDoc, setDoc, getDocs, where, deleteDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
         // --- FIREBASE CONFIG ---
         const firebaseConfig = {
@@ -430,6 +433,7 @@
             const formSection = document.getElementById('form-section');
             const shiftListContainer = document.getElementById('shift-list-container');
             const supervisorActions = document.getElementById('supervisor-actions');
+            const dashboardStats = document.getElementById('dashboard-stats'); // Referência à seção de estatísticas
 
             if (role === 'supervisor') {
                 formSection.innerHTML = '';
@@ -437,12 +441,22 @@
                 shiftListContainer.classList.remove('lg:col-span-2');
                 shiftListContainer.classList.add('lg:col-span-3');
                 supervisorActions.classList.remove('hidden');
-            } else {
+                dashboardStats.classList.remove('hidden'); // Mostra estatísticas para supervisor
+            } else if (role === 'dono') { // Lógica para o papel 'dono'
+                formSection.innerHTML = ''; // Dono não usa formulário de troca
+                formSection.style.display = 'none';
+                shiftListContainer.classList.remove('lg:col-span-2');
+                shiftListContainer.classList.add('lg:col-span-3');
+                supervisorActions.classList.remove('hidden'); // Dono pode ter acesso ao dashboard
+                dashboardStats.classList.add('hidden'); // Oculta estatísticas para dono
+            }
+            else { // Papel 'vigilante' ou outro padrão
                 formSection.innerHTML = shiftFormHTML;
                 formSection.style.display = 'block';
                 shiftListContainer.classList.remove('lg:col-span-3');
                 shiftListContainer.classList.add('lg:col-span-2');
                 supervisorActions.classList.add('hidden');
+                dashboardStats.classList.remove('hidden'); // Mostra estatísticas para vigilante (se desejar)
             }
             
             await fetchAllUsers();
@@ -493,7 +507,10 @@
             shiftList.innerHTML = '';
             
             const isSupervisor = currentUserProfile.role === 'supervisor';
-            const visibleShifts = allShifts.filter(s => isSupervisor || s.requesterUid === currentUserProfile.uid || s.colleagueUid === currentUserProfile.uid);
+            const isDono = currentUserProfile.role === 'dono'; // Verifica se é 'dono'
+
+            // Para 'dono', mostra todas as trocas. Para outros, filtra.
+            const visibleShifts = isDono ? allShifts : allShifts.filter(s => isSupervisor || s.requesterUid === currentUserProfile.uid || s.colleagueUid === currentUserProfile.uid);
 
             if (visibleShifts.length === 0) {
                 shiftList.innerHTML = `<div class="text-center text-gray-500 p-8 bg-[#1a1a1a]/50 rounded-lg">Nenhuma solicitação para você.</div>`;
@@ -510,6 +527,12 @@
                     }
                     if (isSupervisor && shift.status === 'Confirmada - Aguardando Supervisor') {
                          actionsHtml = `<button data-id="${shift.id}" data-action="approve" class="btn btn-success text-xs font-bold py-2 px-4 rounded-full">Aprovar</button> <button data-id="${shift.id}" data-action="decline" class="btn btn-danger text-xs font-bold py-2 px-4 rounded-full">Recusar</button>`;
+                    }
+                    // NOVO: Botão de lixeira para o Dono
+                    if (isDono) {
+                        actionsHtml += `<button data-id="${shift.id}" data-action="delete-shift" class="btn btn-danger text-xs font-bold py-2 px-4 rounded-full ml-2">
+                            <i class="fa-solid fa-trash-can"></i>
+                        </button>`;
                     }
 
                     card.innerHTML = `
@@ -530,21 +553,31 @@
                     shiftList.appendChild(card);
                 });
             }
+            // Lucide Icons ainda é usado para os ícones de status na lista de shifts
             if(typeof lucide !== 'undefined') lucide.createIcons();
-            updateDashboardStats();
+            updateDashboardStats(); // Chamado para atualizar os botões de exportar/excluir
         }
         
         function updateDashboardStats() {
-            document.getElementById('count-total').textContent = allShifts.length;
-            document.getElementById('count-pending').textContent = allShifts.filter(s => s.status.includes('Aguardando')).length;
-            document.getElementById('count-approved').textContent = allShifts.filter(s => s.status === 'Aprovada').length;
-            document.getElementById('count-rejected').textContent = allShifts.filter(s => s.status.includes('Recusada')).length;
-
+            const dashboardStats = document.getElementById('dashboard-stats');
             const exportContainer = document.getElementById('export-container');
-            if (currentUserProfile && currentUserProfile.role === 'supervisor') {
+
+            if (currentUserProfile && currentUserProfile.role === 'dono') {
+                dashboardStats.classList.add('hidden'); // Oculta a seção de estatísticas para o dono
+                exportContainer.innerHTML = `
+                    <button id="delete-all-shifts-btn" class="btn btn-danger text-xs font-semibold py-2 px-3 rounded-full">Excluir Todas</button>
+                    <button id="export-json" class="btn btn-secondary text-xs font-semibold py-2 px-3 rounded-full">Exportar JSON</button>
+                `;
+                document.getElementById('export-json').addEventListener('click', exportDataAsJson);
+                document.getElementById('delete-all-shifts-btn').addEventListener('click', () => {
+                    showActionModal('Excluir Todas as Trocas', 'Tem certeza que deseja EXCLUIR TODAS as trocas? Esta ação é irreversível.', 'btn-danger', deleteAllShifts);
+                });
+            } else if (currentUserProfile && currentUserProfile.role === 'supervisor') {
+                dashboardStats.classList.remove('hidden'); // Mostra a seção de estatísticas para o supervisor
                 exportContainer.innerHTML = `<button id="export-json" class="btn btn-secondary text-xs font-semibold py-2 px-3 rounded-full">Exportar JSON</button>`;
                 document.getElementById('export-json').addEventListener('click', exportDataAsJson);
             } else {
+                dashboardStats.classList.remove('hidden'); // Mostra a seção de estatísticas para vigilante
                 exportContainer.innerHTML = '';
             }
         }
@@ -612,7 +645,8 @@
                     accept: () => showActionModal('Aceitar Troca', `Confirma a troca do plantão?`, 'btn-success', () => performUpdate('Confirmada - Aguardando Supervisor')),
                     reject: () => showActionModal('Recusar Troca', 'Tem certeza que deseja recusar?', 'btn-danger', () => performUpdate('Recusada')),
                     approve: () => showActionModal('Aprovar Troca', 'Confirma a aprovação final?', 'btn-success', () => performUpdate('Aprovada')),
-                    decline: () => showActionModal('Recusar Troca', 'Tem certeza que deseja recusar?', 'btn-danger', () => performUpdate('Recusada pelo Supervisor'))
+                    decline: () => showActionModal('Recusar Troca', 'Tem certeza que deseja recusar?', 'btn-danger', () => performUpdate('Recusada pelo Supervisor')),
+                    'delete-shift': () => showActionModal('Excluir Troca', 'Tem certeza que deseja excluir esta troca?', 'btn-danger', () => deleteShift(id)) // NOVO: Ação de excluir
                 };
                 if (actions[action]) actions[action]();
             }
@@ -812,8 +846,6 @@
                 if (e.target === modalEl) hideModalContainer(modalEl);
             });
 
-            // Remove a chamada a lucide.createIcons() daqui, pois os SVGs estão embutidos
-            // showModalContainer já tem um setTimeout para as transições
             showModalContainer(modalEl);
             return modalEl;
         }
@@ -830,7 +862,6 @@
                 modalEl.classList.remove('opacity-0');
                 const content = modalEl.querySelector('.modal-content');
                 if (content) content.classList.remove('scale-95', 'opacity-0');
-                // Remove a chamada a lucide.createIcons() daqui também, pois os SVGs estão embutidos
             }, 10);
         }
 
@@ -861,6 +892,36 @@
             a.download = 'suncontrol_trocas.json';
             a.click();
             URL.revokeObjectURL(a.href);
+        }
+
+        // NOVO: Função para deletar uma única troca
+        async function deleteShift(shiftId) {
+            try {
+                await deleteDoc(doc(db, `artifacts/${appId}/public/data/shifts`, shiftId));
+                // O listener em tempo real (onSnapshot) vai atualizar a UI automaticamente
+                alert('Troca excluída com sucesso!');
+            } catch (error) {
+                console.error("Erro ao excluir troca:", error);
+                alert("Não foi possível excluir a troca. Verifique as permissões.");
+            }
+        }
+
+        // NOVO: Função para deletar todas as trocas
+        async function deleteAllShifts() {
+            try {
+                const shiftsRef = collection(db, `artifacts/${appId}/public/data/shifts`);
+                const querySnapshot = await getDocs(shiftsRef);
+                const deletePromises = [];
+                querySnapshot.forEach((doc) => {
+                    deletePromises.push(deleteDoc(doc.ref));
+                });
+                await Promise.all(deletePromises);
+                alert('Todas as trocas foram excluídas com sucesso!');
+                // O listener em tempo real vai atualizar a UI automaticamente
+            } catch (error) {
+                console.error("Erro ao excluir todas as trocas:", error);
+                alert("Não foi possível excluir todas as trocas. Verifique as permissões.");
+            }
         }
 
         // --- START THE APP ---
