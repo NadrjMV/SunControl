@@ -212,7 +212,6 @@
             messagingSenderId: "434845455719",
             appId: "1:434845455719:web:06cb665d1274c973f4cbc2"
         };
-        const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
         
         // --- INITIALIZATION ---
         const app = initializeApp(firebaseConfig);
@@ -490,7 +489,7 @@
 
         function startRealtimeListener() {
             if (unsubscribeShifts) unsubscribeShifts();
-            const shiftsCollectionRef = collection(db, `artifacts/${appId}/public/data/shifts`);
+            const shiftsCollectionRef = collection(db, "shifts");
             const q = query(shiftsCollectionRef, orderBy('createdAt', 'desc'));
             unsubscribeShifts = onSnapshot(q, (snapshot) => {
                 allShifts = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
@@ -634,7 +633,7 @@
                 status: 'Aguardando Confirmação',
                 createdAt: serverTimestamp()
             };
-            await addDoc(collection(db, `artifacts/${appId}/public/data/shifts`), newShiftData);
+            await addDoc(collection(db, "shifts"), newShiftData);
             e.target.reset();
             // Após enviar a solicitação, limpa a pré-visualização do colega
             document.getElementById('selected-colleague-preview').classList.add('hidden');
@@ -659,7 +658,7 @@
                 if (!shift) return;
 
                 const performUpdate = async (newStatus) => {
-                    await updateDoc(doc(db, `artifacts/${appId}/public/data/shifts`, id), { status: newStatus });
+                    await updateDoc(doc(db, "shifts", id), { status: newStatus });
                 };
 
                 const actions = {
@@ -918,7 +917,7 @@
         // NOVO: Função para deletar uma única troca
         async function deleteShift(shiftId) {
             try {
-                await deleteDoc(doc(db, `artifacts/${appId}/public/data/shifts`, shiftId));
+                await deleteDoc(doc(db, "shifts", shiftId));
                 // O listener em tempo real (onSnapshot) vai atualizar a UI automaticamente
                 alert('Troca excluída com sucesso!');
             } catch (error) {
@@ -930,7 +929,7 @@
         // NOVO: Função para deletar todas as trocas
         async function deleteAllShifts() {
             try {
-                const shiftsRef = collection(db, `artifacts/${appId}/public/data/shifts`);
+                const shiftsRef = collection(db, "shifts");
                 const querySnapshot = await getDocs(shiftsRef);
                 const deletePromises = [];
                 querySnapshot.forEach((doc) => {
