@@ -9,6 +9,9 @@ on:
 jobs:
   deploy:
     runs-on: ubuntu-latest
+    # ADICIONE ESTA LINHA PARA GARANTIR AS PERMISSÕES CORRETAS
+    permissions:
+      contents: write
     steps:
       # 1. Baixa o seu código do repositório
       - name: Checkout repository
@@ -34,7 +37,6 @@ jobs:
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           publish_dir: . # Publica a pasta raiz do projeto
-          # As linhas abaixo foram adicionadas para garantir um deploy limpo
           user_name: 'github-actions[bot]'
           user_email: 'github-actions[bot]@users.noreply.github.com'
           force_orphan: true
