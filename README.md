@@ -1,7 +1,7 @@
 # ☀️ SunControl - Troca de Plantão
 
 <p align="center">
-  <img src="https://i.postimg.cc/V6HS85m6/SUN-CONTROL-removebg.png" alt="Logo do SunControl" width="150">
+  <img src="https://i.postimg.cc/V6HS85m6/SUN-CONTROL-removebg.png" alt="Logo SunControl" width="150">
 </p>
 
 <p align="center">
@@ -9,7 +9,7 @@
 </p>
 
 <p align="center">
-  <img src="https://i.postimg.cc/x8CKvWTk/b.png" alt="Captura de tela da aplicação">
+  <img src="blob:https://imgur.com/e0dac99c-8d93-4893-952a-c91c4b0b1719" alt="Print do app">
 </p>
 
 ## ✨ Funcionalidades
