@@ -47,44 +47,24 @@
         
         .status-aguardando { border-color: #f59e0b; } .status-confirmada { border-color: #3b82f6; }
         .status-aprovada { border-color: #22c55e; } .status-recusada { border-color: #ef4444; }
+        .status-expirada { border-color: #6b7280; } /* Cor para status Expirada */
 
-.blob { 
-    position: fixed; 
-    border-radius: 50%; 
-    mix-blend-mode: screen; 
-    filter: blur(70px); 
-    z-index: -1; 
-    /* A opacidade agora é fixa e não muda mais */
-    opacity: 0.32; 
-}
-
-@keyframes pulse-blob { 
-    /* Removemos a propriedade 'opacity' da animação */
-    0%, 100% { transform: scale(1) rotate(0deg); } 
-    50% { transform: scale(1.2) rotate(180deg); } 
-}
-
-.animate-pulse-blob { 
-    animation: pulse-blob 20s infinite ease-in-out; 
-}
+        .blob { position: fixed; border-radius: 50%; mix-blend-mode: screen; filter: blur(70px); z-index: -1; opacity: 0.32; }
+        @keyframes pulse-blob { 0%, 100% { transform: scale(1) rotate(0deg); } 50% { transform: scale(1.2) rotate(180deg); } }
+        .animate-pulse-blob { animation: pulse-blob 20s infinite ease-in-out; }
 
         .modal-overlay { transition: opacity 0.3s ease; }
         .modal-content { transition: transform 0.3s ease, opacity 0.3s ease; }
         .modal-close { color: #f0f0f0 !important; transition: color 0.2s ease-in-out; }
-
-        .modal-close:hover {
-            color: var(--sun-yellow); /* Muda a cor do ícone para amarelo ao passar o mouse */
-        }
+        .modal-close:hover { color: var(--sun-yellow); }
         .clickable-name { cursor: pointer; text-decoration: underline; text-decoration-color: rgba(255, 199, 0, 0.5); transition: text-decoration-color 0.3s; }
         .clickable-name:hover { text-decoration-color: rgba(255, 199, 0, 1); }
+        .verified-badge { color: #1DA1F2; font-size: 0.8em; vertical-align: middle; margin-left: 0.25rem; }
 
-        .verified-badge {
-            color: #1DA1F2; /* Azul do Twitter/Verificado */
-            font-size: 0.8em; /* Ajusta o tamanho do ícone para ser menor que o texto */
-            vertical-align: middle; /* Ajuda a alinhar com o texto */
-            margin-left: 0.25rem; /* Um pequeno espaço à esquerda do ícone */
-        }
-
+        /* Estilos para Notificações */
+        .notification-item { transition: background-color 0.2s; }
+        .notification-item.unread { background-color: rgba(255, 199, 0, 0.1); }
+        .notification-item:not(:last-child) { border-bottom: 1px solid rgba(255, 255, 255, 0.1); }
     </style>
 </head>
 <body class="antialiased">
@@ -134,14 +114,19 @@
         <header class="fixed top-0 left-0 w-full z-50 py-3 px-6 md:px-12 glassmorphism">
             <div class="container mx-auto flex justify-between items-center">
                 <div class="flex items-center space-x-3">
-                    <i data-lucide="shield-check" class="text-[var(--sun-yellow)]"></i>
+                    <i class="fa-solid fa-shield-halved text-[var(--sun-yellow)]"></i>
                     <h1 class="text-xl font-bold text-white">SunControl</h1>
                 </div>
                 <div class="flex items-center space-x-4">
                      <div id="supervisor-actions" class="hidden">
                          <button id="open-dashboard-btn" class="btn btn-secondary text-xs font-semibold py-2 px-3 rounded-full flex items-center gap-2">
-                             <i data-lucide="layout-dashboard"></i> Dashboard
+                             <i class="fa-solid fa-table-columns"></i> Dashboard
                          </button>
+                     </div>
+                     <!-- Ícone de Notificação -->
+                     <div id="notification-bell" class="relative cursor-pointer p-2 rounded-full hover:bg-white/10 transition-colors">
+                        <i class="fa-solid fa-bell text-white text-lg"></i>
+                        <span id="notification-badge" class="hidden absolute top-0 right-0 bg-red-500 text-white text-xs w-4 h-4 rounded-full flex items-center justify-center font-bold"></span>
                      </div>
                      <div id="profile-area" class="flex items-center space-x-3 cursor-pointer p-2 rounded-lg hover:bg-white/10 transition-colors">
                          <img id="profile-pic-header" src="https://placehold.co/40x40/1a1a1a/f0f0f0?text=S" class="w-8 h-8 rounded-full object-cover border-2 border-gray-600">
@@ -192,16 +177,13 @@
     <script type="module" src="https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js"></script>
     <script type="module" src="https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js"></script>
     <script type="module" src="https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js"></script>
-    
-    <!-- Lucide Icons -->
-    <script src="https://cdn.jsdelivr.net/npm/lucide-static@0.378.0/lucide.min.js"></script>
 
     <!-- Lógica da Aplicação -->
     <script type="module">
         // --- SDK IMPORTS ---
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
         import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-        import { getFirestore, collection, addDoc, onSnapshot, doc, updateDoc, query, orderBy, serverTimestamp, getDoc, setDoc, getDocs, where, deleteDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        import { getFirestore, collection, addDoc, onSnapshot, doc, updateDoc, query, orderBy, serverTimestamp, getDoc, setDoc, getDocs, where, deleteDoc, writeBatch } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
         // --- FIREBASE CONFIG ---
         const firebaseConfig = {
@@ -227,9 +209,11 @@
         let currentUserProfile = null;
         let allShifts = [];
         let allUsers = new Map();
+        let userNotifications = [];
         let statusChart = null;
         let monthlyChart = null;
         let unsubscribeShifts = null;
+        let unsubscribeNotifications = null;
 
         // --- TEMPLATES HTML ---
         const confirmationModalHTML = (title, message, confirmClass) => `
@@ -238,10 +222,7 @@
                     <div class="flex justify-between items-center mb-6">
                         <h4 class="text-xl font-bold">${title}</h4>
                         <button class="modal-close p-2 rounded-full hover:bg-white/10">
-                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-5 h-5 text-white">
-                                <line x1="18" y1="6" x2="6" y2="18"></line>
-                                <line x1="6" y1="6" x2="18" y2="18"></line>
-                            </svg>
+                            <i class="fa-solid fa-xmark w-5 h-5 text-white"></i>
                         </button>
                     </div>
                     <p class="text-gray-300 mb-8">${message}</p>
@@ -263,10 +244,7 @@
                     <div class="flex justify-between items-center mb-6">
                         <h3 class="text-2xl font-bold">${isOwnProfile ? 'Meu Perfil' : `Perfil de ${user.name.split(' ')[0]}`}</h3>
                         <button class="modal-close p-2 rounded-full hover:bg-white/10">
-                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-5 h-5 text-white">
-                                <line x1="18" y1="6" x2="6" y2="18"></line>
-                                <line x1="6" y1="6" x2="18" y2="18"></line>
-                            </svg>
+                           <i class="fa-solid fa-xmark w-5 h-5 text-white"></i>
                         </button>
                     </div>
                     <div id="profile-view-mode">
@@ -315,15 +293,30 @@
                     <div class="flex justify-between items-center mb-6">
                         <h3 class="text-2xl font-bold">Dashboard de Ocorrências</h3>
                         <button class="modal-close p-2 rounded-full hover:bg-white/10">
-                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-5 h-5 text-white">
-                                <line x1="18" y1="6" x2="6" y2="18"></line>
-                                <line x1="6" y1="6" x2="18" y2="18"></line>
-                            </svg>
+                            <i class="fa-solid fa-xmark w-5 h-5 text-white"></i>
                         </button>
                     </div>
                     <div class="grid md:grid-cols-2 gap-8">
                         <div class="h-80"><canvas id="statusChart"></canvas></div>
                         <div class="h-80"><canvas id="monthlyChart"></canvas></div>
+                    </div>
+                </div>
+            </div>`;
+        
+        const notificationModalHTML = () => `
+            <div class="modal-overlay fixed inset-0 bg-black bg-opacity-70 z-[100] flex items-center justify-center p-4 opacity-0">
+                <div class="modal-content glassmorphism rounded-2xl p-8 max-w-lg w-full shadow-lg scale-95 opacity-0 flex flex-col" style="max-height: 90vh;">
+                    <div class="flex justify-between items-center mb-4 flex-shrink-0">
+                        <h3 class="text-2xl font-bold">Notificações</h3>
+                        <button class="modal-close p-2 rounded-full hover:bg-white/10">
+                            <i class="fa-solid fa-xmark w-5 h-5 text-white"></i>
+                        </button>
+                    </div>
+                    <div id="notification-list" class="flex-grow overflow-y-auto -mr-4 pr-4 space-y-2">
+                        <!-- Itens de notificação serão inseridos aqui -->
+                    </div>
+                    <div id="notification-actions" class="mt-6 flex-shrink-0">
+                       <!-- Ações como "Marcar todas como lidas" serão inseridas aqui -->
                     </div>
                 </div>
             </div>`;
@@ -337,9 +330,7 @@
                         <select id="colleagueName" required class="form-select w-full p-3 rounded-lg mt-1">
                             <option value="" disabled selected>Selecione um colega</option>
                         </select>
-                        <!-- NOVO: Contêiner para a pré-visualização do colega -->
                         <div id="selected-colleague-preview" class="hidden mt-3 p-3 bg-white/5 rounded-lg border border-white/10 flex items-center space-x-3">
-                            <!-- Conteúdo da pré-visualização será injetado aqui pelo JS -->
                         </div>
                     </div>
                     <div>
@@ -368,8 +359,10 @@
             const showLoginBtn = document.getElementById('show-login');
 
             onAuthStateChanged(auth, async (user) => {
+                if (unsubscribeShifts) unsubscribeShifts();
+                if (unsubscribeNotifications) unsubscribeNotifications();
+
                 if (user) {
-                    if (unsubscribeShifts) unsubscribeShifts();
                     const userDocRef = doc(db, "users", user.uid);
                     const userDoc = await getDoc(userDocRef);
                     if (userDoc.exists()) {
@@ -432,35 +425,28 @@
             const formSection = document.getElementById('form-section');
             const shiftListContainer = document.getElementById('shift-list-container');
             const supervisorActions = document.getElementById('supervisor-actions');
-            const dashboardStats = document.getElementById('dashboard-stats'); // Referência à seção de estatísticas
+            const dashboardStats = document.getElementById('dashboard-stats');
 
-            if (role === 'supervisor') {
+            if (role === 'supervisor' || role === 'dono') {
                 formSection.innerHTML = '';
                 formSection.style.display = 'none';
                 shiftListContainer.classList.remove('lg:col-span-2');
                 shiftListContainer.classList.add('lg:col-span-3');
                 supervisorActions.classList.remove('hidden');
-                dashboardStats.classList.remove('hidden'); // Mostra estatísticas para supervisor
-            } else if (role === 'dono') { // Lógica para o papel 'dono'
-                formSection.innerHTML = ''; // Dono não usa formulário de troca
-                formSection.style.display = 'none';
-                shiftListContainer.classList.remove('lg:col-span-2');
-                shiftListContainer.classList.add('lg:col-span-3');
-                supervisorActions.classList.remove('hidden'); // Dono pode ter acesso ao dashboard
-                dashboardStats.classList.add('hidden'); // Oculta estatísticas para dono
-            }
-            else { // Papel 'vigilante' ou outro padrão
+                dashboardStats.classList.remove('hidden');
+            } else {
                 formSection.innerHTML = shiftFormHTML;
                 formSection.style.display = 'block';
                 shiftListContainer.classList.remove('lg:col-span-3');
                 shiftListContainer.classList.add('lg:col-span-2');
                 supervisorActions.classList.add('hidden');
-                dashboardStats.classList.remove('hidden'); // Mostra estatísticas para vigilante (se desejar)
+                dashboardStats.classList.remove('hidden');
             }
             
             await fetchAllUsers();
             setupEventListeners();
             startRealtimeListener();
+            initializeNotifications();
         }
 
         async function fetchAllUsers() {
@@ -479,7 +465,7 @@
                     if (user.id !== currentUserProfile.uid && user.role === 'vigilante') {
                         const option = document.createElement('option');
                         option.value = user.name;
-                        option.textContent = user.name; // Adicionado: Define o texto visível da opção
+                        option.textContent = user.name;
                         option.dataset.uid = user.id;
                         colleaguesSelect.appendChild(option);
                     }
@@ -499,6 +485,30 @@
                 document.getElementById('shift-list').innerHTML = `<div class="text-center text-red-400 p-8 bg-red-900/20 rounded-lg">Erro ao carregar dados. Verifique as permissões do Firestore e o console.</div>`;
             });
         }
+        
+        function initializeNotifications() {
+            if (!currentUserProfile) return;
+            if (unsubscribeNotifications) unsubscribeNotifications();
+
+            const q = query(
+                collection(db, "notifications"),
+                where("userId", "==", currentUserProfile.uid),
+                orderBy("createdAt", "desc")
+            );
+
+            unsubscribeNotifications = onSnapshot(q, (snapshot) => {
+                userNotifications = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                const unreadCount = userNotifications.filter(n => !n.read).length;
+                const badge = document.getElementById('notification-badge');
+
+                if (unreadCount > 0) {
+                    badge.textContent = unreadCount;
+                    badge.classList.remove('hidden');
+                } else {
+                    badge.classList.add('hidden');
+                }
+            });
+        }
 
         function renderShifts() {
             if (!currentUserProfile) return;
@@ -506,28 +516,44 @@
             shiftList.innerHTML = '';
             
             const isSupervisor = currentUserProfile.role === 'supervisor';
-            const isDono = currentUserProfile.role === 'dono'; // Verifica se é 'dono'
+            const isDono = currentUserProfile.role === 'dono';
 
-            // Para 'dono', mostra todas as trocas. Para outros, filtra.
             const visibleShifts = isDono ? allShifts : allShifts.filter(s => isSupervisor || s.requesterUid === currentUserProfile.uid || s.colleagueUid === currentUserProfile.uid);
 
             if (visibleShifts.length === 0) {
                 shiftList.innerHTML = `<div class="text-center text-gray-500 p-8 bg-[#1a1a1a]/50 rounded-lg">Nenhuma solicitação para você.</div>`;
             } else {
                 visibleShifts.forEach(shift => {
-                    const statusMap = { 'Aguardando Confirmação': { class: 'status-aguardando', text: 'Aguardando Confirmação', icon: 'clock' }, 'Confirmada - Aguardando Supervisor': { class: 'status-confirmada', text: 'Aguardando Supervisor', icon: 'user-check' }, 'Aprovada': { class: 'status-aprovada', text: 'Aprovada', icon: 'check-circle-2' }, 'Recusada': { class: 'status-recusada', text: 'Recusada pelo Colega', icon: 'x-circle' }, 'Recusada pelo Supervisor': { class: 'status-recusada', text: 'Recusada pelo Supervisor', icon: 'shield-x' }, };
-                    const statusInfo = statusMap[shift.status];
+                    const statusMap = { 
+                        'Aguardando Confirmação': { class: 'status-aguardando', text: 'Aguardando Confirmação', icon: 'fa-solid fa-clock' }, 
+                        'Confirmada - Aguardando Supervisor': { class: 'status-confirmada', text: 'Aguardando Supervisor', icon: 'fa-solid fa-user-check' }, 
+                        'Aprovada': { class: 'status-aprovada', text: 'Aprovada', icon: 'fa-solid fa-circle-check' }, 
+                        'Recusada': { class: 'status-recusada', text: 'Recusada pelo Colega', icon: 'fa-solid fa-circle-xmark' }, 
+                        'Recusada pelo Supervisor': { class: 'status-recusada', text: 'Recusada pelo Supervisor', icon: 'fa-solid fa-shield-xmark' }, 
+                        'Expirada': { class: 'status-expirada', text: 'Expirada', icon: 'fa-solid fa-calendar-xmark' }, 
+                    };
+
+                    const now = new Date();
+                    const originalDate = new Date(shift.originalDate);
+                    const desiredDate = new Date(shift.desiredDate);
+                    let currentStatus = shift.status;
+
+                    if (currentStatus === 'Aguardando Confirmação' && now > originalDate && now > desiredDate) {
+                        currentStatus = 'Expirada';
+                    }
+
+                    const statusInfo = statusMap[currentStatus];
                     const card = document.createElement('div');
                     card.className = `shift-card p-5 rounded-lg ${statusInfo.class}`;
+                    card.id = `shift-${shift.id}`;
 
                     let actionsHtml = '';
-                    if (currentUserProfile.uid === shift.colleagueUid && shift.status === 'Aguardando Confirmação') {
+                    if (currentUserProfile.uid === shift.colleagueUid && currentStatus === 'Aguardando Confirmação') {
                         actionsHtml = `<button data-id="${shift.id}" data-action="accept" class="btn btn-success text-xs font-bold py-2 px-4 rounded-full">Aceitar</button> <button data-id="${shift.id}" data-action="reject" class="btn btn-danger text-xs font-bold py-2 px-4 rounded-full">Recusar</button>`;
                     }
-                    if (isSupervisor && shift.status === 'Confirmada - Aguardando Supervisor') {
+                    if (isSupervisor && currentStatus === 'Confirmada - Aguardando Supervisor') {
                          actionsHtml = `<button data-id="${shift.id}" data-action="approve" class="btn btn-success text-xs font-bold py-2 px-4 rounded-full">Aprovar</button> <button data-id="${shift.id}" data-action="decline" class="btn btn-danger text-xs font-bold py-2 px-4 rounded-full">Recusar</button>`;
                     }
-                    // NOVO: Botão de lixeira para o Dono
                     if (isDono) {
                         actionsHtml += `<button data-id="${shift.id}" data-action="delete-shift" class="btn btn-danger text-xs font-bold py-2 px-4 rounded-full ml-2">
                             <i class="fa-solid fa-trash-can"></i>
@@ -539,7 +565,7 @@
                             <div>
                                 <h4 class="font-bold text-lg text-white">
                                     <span class="clickable-name" data-uid="${shift.requesterUid}">${shift.requester}</span> 
-                                    <i class="fa-solid fa-arrow-right inline-block h-4 w-4 mx-1"></i>
+                                    <i class="fa-solid fa-arrow-right-long text-gray-400 inline-block h-4 w-4 mx-2"></i>
                                     <span class="clickable-name" data-uid="${shift.colleagueUid}">${shift.colleague}</span>
                                 </h4>
                                 <p class="text-sm text-gray-400">De: ${formatDateTime(shift.originalDate)} <br> Para: ${formatDateTime(shift.desiredDate)}</p>
@@ -552,14 +578,10 @@
                     shiftList.appendChild(card);
                 });
             }
-            // Lucide Icons ainda é usado para os ícones de status na lista de shifts
-            if(typeof lucide !== 'undefined') lucide.createIcons();
-            updateDashboardStats(); // Chamado para atualizar os botões de exportar/excluir
+            updateDashboardStats();
         }
         
         function updateDashboardStats() {
-            // --- INÍCIO DA LÓGICA ADICIONADA ---
-            // 1. Calcula as contagens de cada status a partir da variável global `allShifts`
             const counts = allShifts.reduce((acc, shift) => {
                 const status = shift.status;
                 if (status === 'Aguardando Confirmação' || status === 'Confirmada - Aguardando Supervisor') {
@@ -572,18 +594,13 @@
                 return acc;
             }, { pending: 0, approved: 0, rejected: 0 });
 
-            // 2. Atualiza o conteúdo de texto dos elementos HTML com os valores calculados
             document.getElementById('count-total').textContent = allShifts.length;
             document.getElementById('count-pending').textContent = counts.pending;
             document.getElementById('count-approved').textContent = counts.approved;
             document.getElementById('count-rejected').textContent = counts.rejected;
-            // --- FIM DA LÓGICA ADICIONADA ---
 
-            const dashboardStats = document.getElementById('dashboard-stats');
             const exportContainer = document.getElementById('export-container');
-
             if (currentUserProfile && currentUserProfile.role === 'dono') {
-                dashboardStats.classList.add('hidden'); // Oculta a seção de estatísticas para o dono
                 exportContainer.innerHTML = `
                     <button id="delete-all-shifts-btn" class="btn btn-danger text-xs font-semibold py-2 px-3 rounded-full">Excluir Todas</button>
                     <button id="export-json" class="btn btn-secondary text-xs font-semibold py-2 px-3 rounded-full">Exportar JSON</button>
@@ -593,27 +610,32 @@
                     showActionModal('Excluir Todas as Trocas', 'Tem certeza que deseja EXCLUIR TODAS as trocas? Esta ação é irreversível.', 'btn-danger', deleteAllShifts);
                 });
             } else if (currentUserProfile && currentUserProfile.role === 'supervisor') {
-                dashboardStats.classList.remove('hidden'); // Mostra a seção de estatísticas para o supervisor
                 exportContainer.innerHTML = `<button id="export-json" class="btn btn-secondary text-xs font-semibold py-2 px-3 rounded-full">Exportar JSON</button>`;
                 document.getElementById('export-json').addEventListener('click', exportDataAsJson);
             } else {
-                dashboardStats.classList.remove('hidden'); // Mostra a seção de estatísticas para vigilante
                 exportContainer.innerHTML = '';
             }
         }
 
-        // Funções de tratamento de evento (adicione-as no escopo onde setupEventListeners está)
-        function handleLogout() {
-            signOut(auth);
+        async function createNotification(userId, message, shiftId = null) {
+            try {
+                const notificationData = {
+                    userId,
+                    message,
+                    shiftId,
+                    read: false,
+                    createdAt: serverTimestamp()
+                };
+                await addDoc(collection(db, "notifications"), notificationData);
+            } catch(error) {
+                console.error("Erro ao criar notificação:", error);
+            }
         }
 
-        function handleProfileClick() {
-            openProfileModal(currentUserProfile, true);
-        }
-
-        function handleOpenDashboard() {
-            openDashboardModal();
-        }
+        function handleLogout() { signOut(auth); }
+        function handleProfileClick() { openProfileModal(currentUserProfile, true); }
+        function handleOpenDashboard() { openDashboardModal(); }
+        function handleOpenNotifications() { openNotificationsModal(); }
 
         async function handleShiftFormSubmit(e) {
             e.preventDefault();
@@ -633,9 +655,13 @@
                 status: 'Aguardando Confirmação',
                 createdAt: serverTimestamp()
             };
-            await addDoc(collection(db, "shifts"), newShiftData);
+            
+            const docRef = await addDoc(collection(db, "shifts"), newShiftData);
+            
+            const notificationMessage = `${currentUserProfile.name} enviou uma solicitação de troca.`;
+            await createNotification(colleagueUid, notificationMessage, docRef.id);
+
             e.target.reset();
-            // Após enviar a solicitação, limpa a pré-visualização do colega
             document.getElementById('selected-colleague-preview').classList.add('hidden');
             document.getElementById('selected-colleague-preview').innerHTML = '';
         }
@@ -659,6 +685,26 @@
 
                 const performUpdate = async (newStatus) => {
                     await updateDoc(doc(db, "shifts", id), { status: newStatus });
+                    
+                    // Lógica de Notificação de Resposta/Aprovação
+                    const supervisors = Array.from(allUsers.values()).filter(u => u.role === 'supervisor' || u.role === 'dono');
+                    switch (newStatus) {
+                        case 'Confirmada - Aguardando Supervisor':
+                            await createNotification(shift.requesterUid, `${shift.colleague} aceitou sua solicitação de troca.`, shift.id);
+                            supervisors.forEach(sup => createNotification(sup.id, `A troca entre ${shift.requester} e ${shift.colleague} aguarda aprovação.`, shift.id));
+                            break;
+                        case 'Recusada':
+                            await createNotification(shift.requesterUid, `${shift.colleague} recusou sua solicitação de troca.`, shift.id);
+                            break;
+                        case 'Aprovada':
+                            await createNotification(shift.requesterUid, `Sua troca com ${shift.colleague} foi APROVADA.`, shift.id);
+                            await createNotification(shift.colleagueUid, `Sua troca com ${shift.requester} foi APROVADA.`, shift.id);
+                            break;
+                        case 'Recusada pelo Supervisor':
+                            await createNotification(shift.requesterUid, `Sua troca com ${shift.colleague} foi RECUSADA pelo supervisor.`, shift.id);
+                            await createNotification(shift.colleagueUid, `Sua troca com ${shift.requester} foi RECUSADA pelo supervisor.`, shift.id);
+                            break;
+                    }
                 };
 
                 const actions = {
@@ -666,7 +712,7 @@
                     reject: () => showActionModal('Recusar Troca', 'Tem certeza que deseja recusar?', 'btn-danger', () => performUpdate('Recusada')),
                     approve: () => showActionModal('Aprovar Troca', 'Confirma a aprovação final?', 'btn-success', () => performUpdate('Aprovada')),
                     decline: () => showActionModal('Recusar Troca', 'Tem certeza que deseja recusar?', 'btn-danger', () => performUpdate('Recusada pelo Supervisor')),
-                    'delete-shift': () => showActionModal('Excluir Troca', 'Tem certeza que deseja excluir esta troca?', 'btn-danger', () => deleteShift(id)) // NOVO: Ação de excluir
+                    'delete-shift': () => showActionModal('Excluir Troca', 'Tem certeza que deseja excluir esta troca?', 'btn-danger', () => deleteShift(id))
                 };
                 if (actions[action]) actions[action]();
             }
@@ -676,7 +722,6 @@
             const colleagueSelect = document.getElementById('colleagueName');
             const previewContainer = document.getElementById('selected-colleague-preview');
             
-            // Se a opção padrão ou nenhuma opção válida for selecionada, oculta a pré-visualização
             if (!colleagueSelect.value || colleagueSelect.selectedIndex === 0) {
                 previewContainer.classList.add('hidden');
                 previewContainer.innerHTML = '';
@@ -688,97 +733,48 @@
 
             if (selectedColleagueUid) {
                 const selectedColleague = allUsers.get(selectedColleagueUid);
-
                 if (selectedColleague) {
                     const photo = selectedColleague.photoURL || `https://placehold.co/40x40/1a1a1a/f0f0f0?text=${selectedColleague.name.charAt(0)}`;
                     const posto = selectedColleague.posto || 'Não informado';
                     const cidade = selectedColleague.cidade || 'Não informado';
-
-                    previewContainer.innerHTML = `
-                        <img src="${photo}" class="w-10 h-10 rounded-full object-cover border border-white/20">
-                        <div>
-                            <p class="font-bold text-white">${selectedColleague.name}</p>
-                            <p class="text-xs text-gray-400">Posto: ${posto}</p>
-                            <p class="text-xs text-gray-400">Cidade: ${cidade}</p>
-                        </div>
-                    `;
-                    previewContainer.classList.remove('hidden'); // Mostra o contêiner
+                    previewContainer.innerHTML = `<img src="${photo}" class="w-10 h-10 rounded-full object-cover border border-white/20"><div><p class="font-bold text-white">${selectedColleague.name}</p><p class="text-xs text-gray-400">Posto: ${posto}</p><p class="text-xs text-gray-400">Cidade: ${cidade}</p></div>`;
+                    previewContainer.classList.remove('hidden');
                 } else {
                     previewContainer.classList.add('hidden');
-                    previewContainer.innerHTML = '';
                 }
             } else {
                 previewContainer.classList.add('hidden');
-                previewContainer.innerHTML = '';
             }
         }
 
         function setupEventListeners() {
-            const logoutBtn = document.getElementById('logout-btn');
-            const profileArea = document.getElementById('profile-area');
-            const openDashboardBtn = document.getElementById('open-dashboard-btn');
-            const shiftList = document.getElementById('shift-list');
-
-            // Remova listeners antigos para evitar duplicação
-            if (logoutBtn) logoutBtn.removeEventListener('click', handleLogout);
-            if (profileArea) profileArea.removeEventListener('click', handleProfileClick);
-            if (openDashboardBtn) openDashboardBtn.removeEventListener('click', handleOpenDashboard);
-            if (shiftList) shiftList.removeEventListener('click', handleShiftListClick);
-
-            // Adicione os listeners
-            if (logoutBtn) logoutBtn.addEventListener('click', handleLogout);
-            if (profileArea) profileArea.addEventListener('click', handleProfileClick);
-            if (openDashboardBtn) openDashboardBtn.addEventListener('click', handleOpenDashboard);
-            if (shiftList) shiftList.addEventListener('click', handleShiftListClick);
-
+            document.getElementById('logout-btn')?.addEventListener('click', handleLogout);
+            document.getElementById('profile-area')?.addEventListener('click', handleProfileClick);
+            document.getElementById('open-dashboard-btn')?.addEventListener('click', handleOpenDashboard);
+            document.getElementById('notification-bell')?.addEventListener('click', handleOpenNotifications);
+            document.getElementById('shift-list')?.addEventListener('click', handleShiftListClick);
 
             const shiftFormContainer = document.getElementById('form-section');
             if(shiftFormContainer.hasChildNodes()) {
                 const shiftFormInner = shiftFormContainer.querySelector('#shift-form-inner');
-                const colleagueNameSelect = document.getElementById('colleagueName'); // Obtenha a referência aqui
-
-                // Remova e adicione o listener para o formulário de shift
-                if (shiftFormInner) shiftFormInner.removeEventListener('submit', handleShiftFormSubmit);
-                if (shiftFormInner) shiftFormInner.addEventListener('submit', handleShiftFormSubmit);
-
-                // Remova e adicione o listener para o SELECT de colega
-                if (colleagueNameSelect) colleagueNameSelect.removeEventListener('change', handleColleagueSelectChange); // Remover
-                if (colleagueNameSelect) colleagueNameSelect.addEventListener('change', handleColleagueSelectChange); // Adicionar
+                const colleagueNameSelect = document.getElementById('colleagueName');
+                shiftFormInner?.addEventListener('submit', handleShiftFormSubmit);
+                colleagueNameSelect?.addEventListener('change', handleColleagueSelectChange);
             }
         }
 
-        // --- PROFILE MODAL FUNCTIONS ---
         function openProfileModal(user, isOwnProfile) {
             const modalEl = createAndAppendModal(profileModalHTML(user, isOwnProfile));
             if (!modalEl) return;
-
             if (isOwnProfile) {
                 const viewMode = modalEl.querySelector('#profile-view-mode');
                 const editMode = modalEl.querySelector('#profile-edit-mode');
-                
-                // Funções nomeadas para os listeners internos do modal
-                const handleEditProfileClick = () => {
-                    viewMode.classList.add('hidden');
-                    editMode.classList.remove('hidden');
-                };
-                const handleCancelEditClick = () => {
-                    viewMode.classList.remove('hidden');
-                    editMode.classList.add('hidden');
-                };
-                // Para o submit, passamos a modalEl para saveProfileData
+                const handleEditProfileClick = () => { viewMode.classList.add('hidden'); editMode.classList.remove('hidden'); };
+                const handleCancelEditClick = () => { viewMode.classList.remove('hidden'); editMode.classList.add('hidden'); };
                 const handleProfileEditSubmit = (e) => saveProfileData(e, modalEl);
-
-                const editProfileBtn = modalEl.querySelector('#edit-profile-btn');
-                const cancelEditBtn = modalEl.querySelector('#cancel-edit-btn');
-                const profileEditForm = editMode; // O formulário em si é o elemento para o listener de submit
-
-                if (editProfileBtn) editProfileBtn.removeEventListener('click', handleEditProfileClick);
-                if (cancelEditBtn) cancelEditBtn.removeEventListener('click', handleCancelEditClick);
-                if (profileEditForm) profileEditForm.removeEventListener('submit', handleProfileEditSubmit);
-
-                if (editProfileBtn) editProfileBtn.addEventListener('click', handleEditProfileClick);
-                if (cancelEditBtn) cancelEditBtn.addEventListener('click', handleCancelEditClick);
-                if (profileEditForm) profileEditForm.addEventListener('submit', handleProfileEditSubmit);
+                modalEl.querySelector('#edit-profile-btn')?.addEventListener('click', handleEditProfileClick);
+                modalEl.querySelector('#cancel-edit-btn')?.addEventListener('click', handleCancelEditClick);
+                editMode?.addEventListener('submit', handleProfileEditSubmit);
             }
         }
 
@@ -787,85 +783,117 @@
             const photoURL = document.getElementById('profile-photo-url').value;
             const posto = document.getElementById('profile-posto').value;
             const cidade = document.getElementById('profile-cidade').value;
-
-            if (!currentUserProfile || !currentUserProfile.uid) {
-                console.error("Erro: currentUserProfile ou UID indefinido ao tentar salvar o perfil.");
-                alert("Erro ao salvar o perfil. Por favor, recarregue a página e tente novamente.");
-                hideModalContainer(modalEl);
-                return;
-            }
-
+            if (!currentUserProfile || !currentUserProfile.uid) return;
+            
             const dataToUpdate = { photoURL, posto };
-            if (!currentUserProfile.cidade && cidade) {
-                dataToUpdate.cidade = cidade;
-            }
-
+            if (!currentUserProfile.cidade && cidade) dataToUpdate.cidade = cidade;
+            
             const userDocRef = doc(db, "users", currentUserProfile.uid);
             try {
                 await updateDoc(userDocRef, dataToUpdate);
-                
                 hideModalContainer(modalEl);
-                
                 location.reload(true);
             } catch (error) {
-                console.error("Erro ao salvar as alterações do perfil:", error);
-                if (error.code === 'permission-denied' || error.code === 'missing-or-insufficient-permissions') {
-                    alert("Você não tem permissão para realizar esta alteração. Verifique suas regras de segurança do Firestore.");
-                } else {
-                    alert("Não foi possível salvar as alterações. Verifique o console para mais detalhes.");
-                }
-                hideModalContainer(modalEl); // Em caso de erro, o modal ainda precisa ser fechado
+                console.error("Erro ao salvar perfil:", error);
             }
         }
 
-        // --- DASHBOARD MODAL FUNCTIONS ---
         function openDashboardModal() {
             const modalEl = createAndAppendModal(dashboardModalHTML());
             if (!modalEl) return;
             initializeDashboardCharts();
         }
+
+        function openNotificationsModal() {
+            const modalEl = createAndAppendModal(notificationModalHTML());
+            if (!modalEl) return;
+
+            const notificationList = modalEl.querySelector('#notification-list');
+            const notificationActions = modalEl.querySelector('#notification-actions');
+            
+            if (userNotifications.length === 0) {
+                notificationList.innerHTML = `<p class="text-center text-gray-400 p-8">Nenhuma notificação encontrada.</p>`;
+                return;
+            }
+
+            userNotifications.forEach(n => {
+                const item = document.createElement('div');
+                item.className = `notification-item p-4 rounded-lg cursor-pointer ${!n.read ? 'unread' : 'bg-white/5'}`;
+                item.innerHTML = `
+                    <p class="text-white">${n.message}</p>
+                    <p class="text-xs text-gray-400 mt-1">${formatRelativeTime(n.createdAt)}</p>
+                `;
+                item.addEventListener('click', async () => {
+                    await markNotificationAsRead(n.id);
+                    if (n.shiftId) {
+                        hideModalContainer(modalEl);
+                        const shiftCard = document.getElementById(`shift-${n.shiftId}`);
+                        shiftCard?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                        shiftCard?.classList.add('animate-pulse');
+                        setTimeout(() => shiftCard?.classList.remove('animate-pulse'), 2000);
+                    }
+                });
+                notificationList.appendChild(item);
+            });
+            
+            const unreadCount = userNotifications.filter(n => !n.read).length;
+            if (unreadCount > 0) {
+                const markAllReadBtn = document.createElement('button');
+                markAllReadBtn.className = 'btn btn-secondary w-full font-semibold py-2 rounded-full';
+                markAllReadBtn.textContent = 'Marcar todas como lidas';
+                markAllReadBtn.addEventListener('click', async () => {
+                    await markAllNotificationsAsRead();
+                    // Re-render list inside modal
+                    modalEl.querySelectorAll('.notification-item.unread').forEach(item => {
+                        item.classList.remove('unread');
+                        item.classList.add('bg-white/5');
+                    });
+                    markAllReadBtn.remove();
+                });
+                notificationActions.appendChild(markAllReadBtn);
+            }
+        }
+
+        async function markNotificationAsRead(notificationId) {
+            const notificationRef = doc(db, "notifications", notificationId);
+            await updateDoc(notificationRef, { read: true });
+        }
+
+        async function markAllNotificationsAsRead() {
+            const unread = userNotifications.filter(n => !n.read);
+            if (unread.length === 0) return;
+
+            const batch = writeBatch(db);
+            unread.forEach(n => {
+                const notificationRef = doc(db, "notifications", n.id);
+                batch.update(notificationRef, { read: true });
+            });
+            await batch.commit();
+        }
         
         function initializeDashboardCharts() {
             const statusCtx = document.getElementById('statusChart').getContext('2d');
             if(statusChart) statusChart.destroy();
-            
             const statusCounts = allShifts.reduce((acc, s) => { acc[s.status] = (acc[s.status] || 0) + 1; return acc; }, {});
             statusChart = new Chart(statusCtx, { type: 'doughnut', data: { labels: Object.keys(statusCounts), datasets: [{ data: Object.values(statusCounts), backgroundColor: ['#f59e0b', '#3b82f6', '#22c55e', '#ef4444', '#ef4444'], borderColor: '#1c1c1c', borderWidth: 4 }] }, options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'top', labels: { color: '#f0f0f0' } } } } });
-
             const monthlyCtx = document.getElementById('monthlyChart').getContext('2d');
             if(monthlyChart) monthlyChart.destroy();
-
             const monthlyCounts = allShifts.reduce((acc, s) => { 
-                if(s.createdAt && typeof s.createdAt.toDate === 'function'){ 
-                    const m = s.createdAt.toDate().toLocaleString('default', {month:'short'}); 
-                    acc[m] = (acc[m]||0)+1; 
-                } else if (s.createdAt instanceof Date) { // Handle if createdAt is already a Date object
-                    const m = s.createdAt.toLocaleString('default', {month:'short'}); 
-                    acc[m] = (acc[m]||0)+1; 
-                }
+                if(s.createdAt && typeof s.createdAt.toDate === 'function'){ const m = s.createdAt.toDate().toLocaleString('default', {month:'short'}); acc[m] = (acc[m]||0)+1; } 
+                else if (s.createdAt instanceof Date) { const m = s.createdAt.toLocaleString('default', {month:'short'}); acc[m] = (acc[m]||0)+1; }
                 return acc; 
             }, {});
-
             monthlyChart = new Chart(monthlyCtx, { type: 'bar', data: { labels: Object.keys(monthlyCounts).reverse(), datasets: [{ label: 'Trocas por Mês', data: Object.values(monthlyCounts).reverse(), backgroundColor: 'rgba(255, 199, 0, 0.6)', borderColor: 'rgba(255, 199, 0, 1)', borderWidth: 1 }] }, options: { responsive: true, maintainAspectRatio: false, scales: { y: { ticks: { color: '#999', stepSize: 1 } }, x: { ticks: { color: '#999' } } }, plugins: { legend: { display: false } } } });
         }
         
-        // --- UTILITY FUNCTIONS (MODAL LOGIC REBUILT) ---
         function createAndAppendModal(innerHTML) {
             const tempDiv = document.createElement('div');
             tempDiv.innerHTML = innerHTML.trim();
             const modalEl = tempDiv.firstElementChild;
             if (!modalEl) return null;
-            
             modalContainer.appendChild(modalEl);
-            
-            modalEl.querySelectorAll('.modal-close').forEach(btn => {
-                btn.addEventListener('click', () => hideModalContainer(modalEl));
-            });
-            
-            modalEl.addEventListener('click', (e) => {
-                if (e.target === modalEl) hideModalContainer(modalEl);
-            });
-
+            modalEl.querySelectorAll('.modal-close').forEach(btn => btn.addEventListener('click', () => hideModalContainer(modalEl)));
+            modalEl.addEventListener('click', (e) => { if (e.target === modalEl) hideModalContainer(modalEl); });
             showModalContainer(modalEl);
             return modalEl;
         }
@@ -881,7 +909,7 @@
             setTimeout(() => {
                 modalEl.classList.remove('opacity-0');
                 const content = modalEl.querySelector('.modal-content');
-                if (content) content.classList.remove('scale-95', 'opacity-0');
+                content?.classList.remove('scale-95', 'opacity-0');
             }, 10);
         }
 
@@ -889,12 +917,8 @@
             if (!modalEl) return;
             modalEl.classList.add('opacity-0');
             const content = modalEl.querySelector('.modal-content');
-            if (content) content.classList.add('scale-95', 'opacity-0');
-            setTimeout(() => { 
-                if(modalContainer.contains(modalEl)) {
-                    modalContainer.removeChild(modalEl);
-                }
-            }, 300);
+            content?.classList.add('scale-95', 'opacity-0');
+            setTimeout(() => { if(modalContainer.contains(modalEl)) modalContainer.removeChild(modalEl); }, 300);
         }
         
         function formatDateTime(dateTimeString) {
@@ -903,6 +927,21 @@
             return date.toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' });
         }
         
+        function formatRelativeTime(timestamp) {
+            if (!timestamp || typeof timestamp.toDate !== 'function') return '';
+            const date = timestamp.toDate();
+            const now = new Date();
+            const seconds = Math.round((now - date) / 1000);
+            const minutes = Math.round(seconds / 60);
+            const hours = Math.round(minutes / 60);
+            const days = Math.round(hours / 24);
+
+            if (seconds < 60) return `há ${seconds} segundos`;
+            if (minutes < 60) return `há ${minutes} minutos`;
+            if (hours < 24) return `há ${hours} horas`;
+            return `há ${days} dias`;
+        }
+
         function exportDataAsJson() {
             const dataToExport = allShifts.map(s => ({...s, createdAt: s.createdAt.toDate()}));
             const jsonContent = JSON.stringify(dataToExport, null, 2);
@@ -914,33 +953,23 @@
             URL.revokeObjectURL(a.href);
         }
 
-        // NOVO: Função para deletar uma única troca
         async function deleteShift(shiftId) {
             try {
                 await deleteDoc(doc(db, "shifts", shiftId));
-                // O listener em tempo real (onSnapshot) vai atualizar a UI automaticamente
-                alert('Troca excluída com sucesso!');
             } catch (error) {
                 console.error("Erro ao excluir troca:", error);
-                alert("Não foi possível excluir a troca. Verifique as permissões.");
             }
         }
 
-        // NOVO: Função para deletar todas as trocas
         async function deleteAllShifts() {
             try {
                 const shiftsRef = collection(db, "shifts");
                 const querySnapshot = await getDocs(shiftsRef);
-                const deletePromises = [];
-                querySnapshot.forEach((doc) => {
-                    deletePromises.push(deleteDoc(doc.ref));
-                });
-                await Promise.all(deletePromises);
-                alert('Todas as trocas foram excluídas com sucesso!');
-                // O listener em tempo real vai atualizar a UI automaticamente
+                const batch = writeBatch(db);
+                querySnapshot.forEach((doc) => batch.delete(doc.ref));
+                await batch.commit();
             } catch (error) {
                 console.error("Erro ao excluir todas as trocas:", error);
-                alert("Não foi possível excluir todas as trocas. Verifique as permissões.");
             }
         }
 
