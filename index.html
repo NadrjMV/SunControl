@@ -216,14 +216,22 @@
     <script type="module" src="https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js"></script>
     <script type="module" src="https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js"></script>
 
-    <script src="firebase-config.js"></script> 
-
     <!-- Lógica da Aplicação -->
     <script type="module">
         // --- SDK IMPORTS ---
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
         import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
         import { getFirestore, collection, addDoc, onSnapshot, doc, updateDoc, query, orderBy, serverTimestamp, getDoc, setDoc, getDocs, where, deleteDoc, writeBatch } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+        // --- FIREBASE CONFIG ---
+        const firebaseConfig = {
+            apiKey: "AIzaSyA0UFqsNRUGVwDpYcwduab8WaxoVrMxiBA",
+            authDomain: "suncontrol-d2d94.firebaseapp.com",
+            projectId: "suncontrol-d2d94",
+            storageBucket: "suncontrol-d2d94.appspot.com",
+            messagingSenderId: "434845455719",
+            appId: "1:434845455719:web:06cb665d1274c973f4cbc2"
+        };
         
         // --- INITIALIZATION ---
         const app = initializeApp(firebaseConfig);
@@ -612,10 +620,10 @@ const dashboardModalHTML = () => `
                 visibleShifts.forEach(shift => {
                     const statusMap = { 
                         'Aguardando Confirmação': { class: 'status-aguardando', text: 'Aguardando Confirmação', icon: 'fa-solid fa-clock', iconColor: 'text-yellow-500' }, 
-                        'Confirmada - Aguardando Supervisor': { class: 'status-confirmada', text: 'Aguardando Supervisor', icon: 'fa-solid fa-user-check', iconColor: 'text-green-500' }, 
+                        'Confirmada - Aguardando Supervisor': { class: 'status-confirmada', text: 'Aguardando Supervisor', icon: 'fa-solid fa-user-check', iconColor: 'text-yellow-500' }, 
                         'Aprovada': { class: 'status-aprovada', text: 'Aprovada', icon: 'fa-solid fa-circle-check', iconColor: 'text-green-500' }, 
                         'Recusada': { class: 'status-recusada', text: 'Recusada pelo Colega', icon: 'fa-solid fa-circle-xmark', iconColor: 'text-red-500' }, 
-                        'Recusada pelo Supervisor': { class: 'status-recusada', text: 'Recusada pelo Supervisor', icon: 'fa-solid fa-shield-xmark', iconColor: 'text-red-600' }, 
+                        'Recusada pelo Supervisor': { class: 'status-recusada', text: 'Recusada pelo Supervisor', icon: 'fa-solid fa-shield-xmark', iconColor: 'text-yellow-600' }, 
                         'Expirada': { class: 'status-expirada', text: 'Expirada', icon: 'fa-solid fa-calendar-xmark', iconColor: 'text-red-400' }, 
                     };
 
