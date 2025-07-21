@@ -9,7 +9,7 @@
 </p>
 
 <p align="center">
-  <img src="blob:https://imgur.com/e0dac99c-8d93-4893-952a-c91c4b0b1719" alt="Print do app">
+  <img src="https://i.imgur.com/uLNVxOw.jpeg" alt="Print do app">
 </p>
 
 ## ✨ Funcionalidades
