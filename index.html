@@ -342,7 +342,7 @@ const dashboardModalHTML = () => `
                         <div id="db-total-count" class="text-3xl font-bold mt-1 text-white">0</div>
                     </div>
                     <div class="stat-card bg-gray-800/50 p-4 rounded-lg border-l-[var(--color-approved)]" style="animation-delay: 0.1s;">
-                        <div class="flex items-center text-gray-400 text-sm font-medium"><i class="fa-solid fa-circle-check mr-2 text-[var(--color-approved)]"></i> Aprovadas</div>
+                        <i class="fa-solid fa-circle-check mr-2 text-[var(--color-approved)] !text-[var(--color-approved)]"></i>
                         <div id="db-approved-count" class="text-3xl font-bold mt-1 text-white">0</div>
                     </div>
                     <div class="stat-card bg-gray-800/50 p-4 rounded-lg border-l-[var(--color-pending)]" style="animation-delay: 0.2s;">
@@ -619,12 +619,12 @@ const dashboardModalHTML = () => `
             } else {
                 visibleShifts.forEach(shift => {
                     const statusMap = { 
-                        'Aguardando Confirmação': { class: 'status-aguardando', text: 'Aguardando Confirmação', icon: 'fa-solid fa-clock' }, 
-                        'Confirmada - Aguardando Supervisor': { class: 'status-confirmada', text: 'Aguardando Supervisor', icon: 'fa-solid fa-user-check' }, 
-                        'Aprovada': { class: 'status-aprovada', text: 'Aprovada', icon: 'fa-solid fa-circle-check' }, 
-                        'Recusada': { class: 'status-recusada', text: 'Recusada pelo Colega', icon: 'fa-solid fa-circle-xmark' }, 
-                        'Recusada pelo Supervisor': { class: 'status-recusada', text: 'Recusada pelo Supervisor', icon: 'fa-solid fa-shield-xmark' }, 
-                        'Expirada': { class: 'status-expirada', text: 'Expirada', icon: 'fa-solid fa-calendar-xmark' }, 
+                        'Aguardando Confirmação': { class: 'status-aguardando', text: 'Aguardando Confirmação', icon: 'fa-solid fa-clock', iconColor: 'text-yellow-500' }, 
+                        'Confirmada - Aguardando Supervisor': { class: 'status-confirmada', text: 'Aguardando Supervisor', icon: 'fa-solid fa-user-check', iconColor: 'text-green-500' }, 
+                        'Aprovada': { class: 'status-aprovada', text: 'Aprovada', icon: 'fa-solid fa-circle-check', iconColor: 'text-green-500' }, 
+                        'Recusada': { class: 'status-recusada', text: 'Recusada pelo Colega', icon: 'fa-solid fa-circle-xmark', iconColor: 'text-red-500' }, 
+                        'Recusada pelo Supervisor': { class: 'status-recusada', text: 'Recusada pelo Supervisor', icon: 'fa-solid fa-shield-xmark', iconColor: 'text-red-600' }, 
+                        'Expirada': { class: 'status-expirada', text: 'Expirada', icon: 'fa-solid fa-calendar-xmark', iconColor: 'text-red-400' }, 
                     };
 
                     const now = new Date();
@@ -665,7 +665,7 @@ const dashboardModalHTML = () => `
                                 <p class="text-sm text-gray-400">De: ${formatDateTime(shift.originalDate)} <br> Para: ${formatDateTime(shift.desiredDate)}</p>
                                 ${shift.reason ? `<p class="text-sm text-gray-300 mt-2 italic">Motivo: "${shift.reason}"</p>` : ''}
                             </div>
-                            <div class="text-right flex-shrink-0"><span class="flex items-center justify-end text-sm font-semibold"><i class="${statusInfo.icon} h-4 w-4 mr-2"></i> ${statusInfo.text}</span></div>
+                            <div class="text-right flex-shrink-0"><span class="flex items-center justify-end text-sm font-semibold"><i class="${statusInfo.icon} ${statusInfo.iconColor} h-4 w-4 mr-2"></i> ${statusInfo.text}</span></div>
                         </div>
                         ${actionsHtml ? `<div class="mt-4 pt-4 border-t border-gray-700 flex justify-end space-x-3">${actionsHtml}</div>` : ''}
                     `;
