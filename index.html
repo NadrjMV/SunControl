@@ -212,8 +212,7 @@
         let userNotifications = [];
         let statusChart = null;
         let monthlyChart = null;
-        let unsubscribeShifts = null;
-        let unsubscribeNotifications = null;
+        let unsubscribeListeners = []; // Array para guardar todos os listeners
 
         // --- TEMPLATES HTML ---
         const confirmationModalHTML = (title, message, confirmClass) => `
@@ -358,19 +357,35 @@
             const showRegisterBtn = document.getElementById('show-register');
             const showLoginBtn = document.getElementById('show-login');
 
-            onAuthStateChanged(auth, async (user) => {
-                if (unsubscribeShifts) unsubscribeShifts();
-                if (unsubscribeNotifications) unsubscribeNotifications();
+            onAuthStateChanged(auth, (user) => {
+                unsubscribeListeners.forEach(unsub => unsub());
+                unsubscribeListeners = [];
 
                 if (user) {
                     const userDocRef = doc(db, "users", user.uid);
-                    const userDoc = await getDoc(userDocRef);
-                    if (userDoc.exists()) {
-                        currentUserProfile = { uid: user.uid, ...userDoc.data() };
-                        authContainer.classList.add('hidden');
-                        appContainer.classList.remove('hidden');
-                        initializeAppUI();
-                    } else { await signOut(auth); }
+                    
+                    const unsub = onSnapshot(userDocRef, (doc) => {
+                        if (doc.exists()) {
+                            const newProfile = { uid: user.uid, ...doc.data() };
+                            
+                            if (JSON.stringify(newProfile) !== JSON.stringify(currentUserProfile)) {
+                                currentUserProfile = newProfile;
+                                initializeAppUI();
+                            } else {
+                            }
+                        } else {
+                            console.error('[DEBUG] ERRO: Documento do usuário não encontrado no Firestore!');
+                            signOut(auth);
+                        }
+                    }, (error) => {
+                        console.error("[DEBUG] ERRO CRÍTICO no listener do perfil (verifique as REGRAS do Firestore):", error);
+                        signOut(auth);
+                    });
+                    
+                    unsubscribeListeners.push(unsub);
+                    authContainer.classList.add('hidden');
+                    appContainer.classList.remove('hidden');
+
                 } else {
                     currentUserProfile = null;
                     authContainer.classList.remove('hidden');
@@ -415,7 +430,10 @@
         
         // --- MAIN APP LOGIC ---
         async function initializeAppUI() {
-            if (!currentUserProfile) return;
+            if (!currentUserProfile) {
+                console.error('[DEBUG] initializeAppUI chamada sem currentUserProfile!');
+                return;
+            }
             
             const { name, role, photoURL } = currentUserProfile;
             document.getElementById('user-greeting').textContent = `Olá, ${name.split(' ')[0]}`;
@@ -445,8 +463,7 @@
             
             await fetchAllUsers();
             setupEventListeners();
-            startRealtimeListener();
-            initializeNotifications();
+            startRealtimeListeners();
         }
 
         async function fetchAllUsers() {
@@ -473,41 +490,44 @@
             }
         }
 
-        function startRealtimeListener() {
-            if (unsubscribeShifts) unsubscribeShifts();
+        function startRealtimeListeners() {
+            unsubscribeListeners.filter(unsub => unsub.type === 'data').forEach(unsub => unsub.func());
+            unsubscribeListeners = unsubscribeListeners.filter(unsub => unsub.type !== 'data');
+
             const shiftsCollectionRef = collection(db, "shifts");
-            const q = query(shiftsCollectionRef, orderBy('createdAt', 'desc'));
-            unsubscribeShifts = onSnapshot(q, (snapshot) => {
+            const qShifts = query(shiftsCollectionRef, orderBy('createdAt', 'desc'));
+            const unsubShifts = onSnapshot(qShifts, (snapshot) => {
                 allShifts = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
                 renderShifts();
             }, (error) => {
-                console.error("Erro no listener do Firestore:", error);
-                document.getElementById('shift-list').innerHTML = `<div class="text-center text-red-400 p-8 bg-red-900/20 rounded-lg">Erro ao carregar dados. Verifique as permissões do Firestore e o console.</div>`;
+                console.error("Erro no listener de trocas:", error);
             });
-        }
-        
-        function initializeNotifications() {
-            if (!currentUserProfile) return;
-            if (unsubscribeNotifications) unsubscribeNotifications();
+            unsubscribeListeners.push({type: 'data', func: unsubShifts});
 
-            const q = query(
+            if (!currentUserProfile) return;
+            const qNotif = query(
                 collection(db, "notifications"),
                 where("userId", "==", currentUserProfile.uid),
                 orderBy("createdAt", "desc")
             );
 
-            unsubscribeNotifications = onSnapshot(q, (snapshot) => {
+            const unsubNotif = onSnapshot(qNotif, (snapshot) => {
                 userNotifications = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
                 const unreadCount = userNotifications.filter(n => !n.read).length;
                 const badge = document.getElementById('notification-badge');
 
-                if (unreadCount > 0) {
-                    badge.textContent = unreadCount;
-                    badge.classList.remove('hidden');
-                } else {
-                    badge.classList.add('hidden');
+                if (badge) {
+                    if (unreadCount > 0) {
+                        badge.textContent = unreadCount;
+                        badge.classList.remove('hidden');
+                    } else {
+                        badge.classList.add('hidden');
+                    }
                 }
+            }, (error) => {
+                 console.error("Erro no listener de notificações:", error);
             });
+            unsubscribeListeners.push({type: 'data', func: unsubNotif});
         }
 
         function renderShifts() {
@@ -518,7 +538,7 @@
             const isSupervisor = currentUserProfile.role === 'supervisor';
             const isDono = currentUserProfile.role === 'dono';
 
-            const visibleShifts = isDono ? allShifts : allShifts.filter(s => isSupervisor || s.requesterUid === currentUserProfile.uid || s.colleagueUid === currentUserProfile.uid);
+            const visibleShifts = isSupervisor || isDono ? allShifts : allShifts.filter(s => s.requesterUid === currentUserProfile.uid || s.colleagueUid === currentUserProfile.uid);
 
             if (visibleShifts.length === 0) {
                 shiftList.innerHTML = `<div class="text-center text-gray-500 p-8 bg-[#1a1a1a]/50 rounded-lg">Nenhuma solicitação para você.</div>`;
@@ -551,7 +571,7 @@
                     if (currentUserProfile.uid === shift.colleagueUid && currentStatus === 'Aguardando Confirmação') {
                         actionsHtml = `<button data-id="${shift.id}" data-action="accept" class="btn btn-success text-xs font-bold py-2 px-4 rounded-full">Aceitar</button> <button data-id="${shift.id}" data-action="reject" class="btn btn-danger text-xs font-bold py-2 px-4 rounded-full">Recusar</button>`;
                     }
-                    if (isSupervisor && currentStatus === 'Confirmada - Aguardando Supervisor') {
+                    if ((isSupervisor || isDono) && currentStatus === 'Confirmada - Aguardando Supervisor') {
                          actionsHtml = `<button data-id="${shift.id}" data-action="approve" class="btn btn-success text-xs font-bold py-2 px-4 rounded-full">Aprovar</button> <button data-id="${shift.id}" data-action="decline" class="btn btn-danger text-xs font-bold py-2 px-4 rounded-full">Recusar</button>`;
                     }
                     if (isDono) {
@@ -582,6 +602,9 @@
         }
         
         function updateDashboardStats() {
+            const dashboardStats = document.getElementById('dashboard-stats');
+            if (dashboardStats.classList.contains('hidden')) return;
+
             const counts = allShifts.reduce((acc, shift) => {
                 const status = shift.status;
                 if (status === 'Aguardando Confirmação' || status === 'Confirmada - Aguardando Supervisor') {
@@ -686,7 +709,6 @@
                 const performUpdate = async (newStatus) => {
                     await updateDoc(doc(db, "shifts", id), { status: newStatus });
                     
-                    // Lógica de Notificação de Resposta/Aprovação
                     const supervisors = Array.from(allUsers.values()).filter(u => u.role === 'supervisor' || u.role === 'dono');
                     switch (newStatus) {
                         case 'Confirmada - Aguardando Supervisor':
@@ -722,9 +744,11 @@
             const colleagueSelect = document.getElementById('colleagueName');
             const previewContainer = document.getElementById('selected-colleague-preview');
             
-            if (!colleagueSelect.value || colleagueSelect.selectedIndex === 0) {
-                previewContainer.classList.add('hidden');
-                previewContainer.innerHTML = '';
+            if (!colleagueSelect || !previewContainer || !colleagueSelect.value || colleagueSelect.selectedIndex === 0) {
+                if(previewContainer) {
+                    previewContainer.classList.add('hidden');
+                    previewContainer.innerHTML = '';
+                }
                 return;
             }
 
@@ -792,7 +816,7 @@
             try {
                 await updateDoc(userDocRef, dataToUpdate);
                 hideModalContainer(modalEl);
-                location.reload(true);
+                // Não precisa de reload, o onSnapshot cuidará da atualização.
             } catch (error) {
                 console.error("Erro ao salvar perfil:", error);
             }
@@ -843,7 +867,6 @@
                 markAllReadBtn.textContent = 'Marcar todas como lidas';
                 markAllReadBtn.addEventListener('click', async () => {
                     await markAllNotificationsAsRead();
-                    // Re-render list inside modal
                     modalEl.querySelectorAll('.notification-item.unread').forEach(item => {
                         item.classList.remove('unread');
                         item.classList.add('bg-white/5');
