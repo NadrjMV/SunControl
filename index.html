@@ -43,7 +43,7 @@
         
         .status-aguardando { border-color: #f59e0b; } .status-confirmada { border-color: #3b82f6; }
         .status-aprovada { border-color: #22c55e; } .status-recusada { border-color: #ef4444; }
-        .status-expirada { border-color: #6b7280; } /* Cor para status Expirada */
+        .status-expirada { border-color: #6b7280; }
 
         .blob { position: fixed; border-radius: 50%; mix-blend-mode: screen; filter: blur(70px); z-index: -1; opacity: 0.32; }
         @keyframes pulse-blob { 0%, 100% { transform: scale(1) rotate(0deg); } 50% { transform: scale(1.2) rotate(180deg); } }
@@ -87,7 +87,7 @@
             height: 100%;
             border-radius: 9999px;
             transition: width 1s ease-out;
-            width: 0%; /* Inicia com 0 para animar */
+            width: 0%;
         }
         
         @keyframes slideUpFadeIn {
@@ -215,18 +215,12 @@
         import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, onAuthStateChanged, signOut, sendPasswordResetEmail } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
         import { getFirestore, collection, addDoc, onSnapshot, doc, updateDoc, query, orderBy, serverTimestamp, getDoc, setDoc, getDocs, where, deleteDoc, writeBatch } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
-        // --- CONFIGURAÇÕES GLOBAIS ---
-        /**
-         * IMPORTANTE: Edite esta lista para incluir as regionais da sua empresa.
-         * Elas aparecerão no menu de seleção durante o cadastro.
-         */
         const availableRegions = [
             "Sul", 
             "Norte", 
-            "Leste", 
-            "Oeste", 
-            "Itajubá",
-            "Pouso Alegre"
+            "Centro-Oeste", 
+            "Sudeste",
+            "Nordeste"
         ];
         
         // --- FIREBASE CONFIG ---
@@ -254,7 +248,7 @@
         let allShifts = [];
         let allUsers = new Map();
         let userNotifications = [];
-        let unsubscribeListeners = []; // Array para guardar todos os listeners
+        let unsubscribeListeners = [];
 
         // --- HELPER FUNCTIONS ---
         function normalizeRegion(regionStr) {
@@ -469,7 +463,6 @@
 
         // --- AUTHENTICATION LOGIC ---
         function initializeAuth() {
-            // Popula o seletor de regionais no cadastro
             const regionSelect = document.getElementById('register-regional');
             if (regionSelect) {
                 availableRegions.sort().forEach(region => {
@@ -688,13 +681,13 @@
 
             let visibleShifts = [];
             if (isDono) {
-                visibleShifts = allShifts; // Dono vê tudo
+                visibleShifts = allShifts; // Dono vê todas
             } else if (isSupervisor) {
                 // Supervisor só vê trocas se tiver uma regional definida
                 if (currentUserRegion) {
                     visibleShifts = allShifts.filter(s => normalizeRegion(s.regional) === currentUserRegion);
                 } else {
-                    visibleShifts = []; // Nenhuma troca visível se não tiver regional
+                    visibleShifts = [];
                 }
             } else {
                 // Vigilante vê apenas as trocas em que está envolvido
@@ -929,7 +922,7 @@
                             await createNotification(shift.requesterUid, `${shift.colleague} recusou sua solicitação de troca.`, shift.id);
                             break;
                         case 'Aprovada':
-                            const approverName = currentUserProfile.name.split(' ')[0]; // Pega o primeiro nome de quem aprovou
+                            const approverName = currentUserProfile.name.split(' ')[0]; // Pega o nome de qm aprovou
                             await createNotification(shift.requesterUid, `Sua troca com ${shift.colleague} foi APROVADA por ${approverName}.`, shift.id);
                             await createNotification(shift.colleagueUid, `Sua troca com ${shift.requester} foi APROVADA por ${approverName}.`, shift.id);
                             break;
