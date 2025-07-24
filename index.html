@@ -6,18 +6,14 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>SunControl | Troca de Plantão</title>
     
-    <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
     
-    <!-- Chart.js -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     
     <link rel="icon" type="image/png" href="https://i.postimg.cc/V6HS85m6/SUN-CONTROL-removebg.png">
 
-    <!-- Font Awesome CSS -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" xintegrity="sha512-SnH5WK+bZxgPHs44uWIX+LLJAJ9/2PkPKZ5QiAj6Ta86w+fsb2TkcmfRyVX3pBnMFcV7oQPJkl9QevSCWr3W6A==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" integrity="sha512-SnH5WK+bZxgPHs44uWIX+LLJAJ9/2PkPKZ5QiAj6Ta86w+fsb2TkcmfRyVX3pBnMFcV7oQPJkl9QevSCWr3W6A==" crossorigin="anonymous" referrerpolicy="no-referrer" />
 
-    <!-- Fontes -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
@@ -71,6 +67,7 @@
             --color-approved: #22c55e;
             --color-pending: #f59e0b;
             --color-rejected: #ef4444;
+            --color-expired: #6b7280;
         }
 
         .stat-card {
@@ -106,14 +103,11 @@
     </style>
 </head>
 <body class="antialiased">
-    <!-- Fundo animado -->
     <div class="blob bg-yellow-400 w-96 h-96 top-10 left-10 animate-pulse-blob"></div>
     <div class="blob bg-blue-500 w-96 h-96 bottom-10 right-10 animate-pulse-blob" style="animation-delay: 7s;"></div>
 
-    <!-- ===== TELA DE AUTENTICAÇÃO ===== -->
     <div id="auth-container" class="min-h-screen flex items-center justify-center p-4">
         <div class="w-full max-w-md">
-            <!-- Formulário de Login -->
             <div id="login-view">
                 <div class="glassmorphism p-8 rounded-2xl">
                     <h2 class="text-3xl font-bold text-center text-white mb-2">Bem-vindo ao <span class="text-blue-500">SunControl</span></h2>
@@ -121,14 +115,16 @@
                     <form id="login-form" class="space-y-4">
                         <input type="email" id="login-email" placeholder="Email" required class="form-input w-full p-3 rounded-lg" autocomplete="email">
                         <input type="password" id="login-password" placeholder="Senha" required class="form-input w-full p-3 rounded-lg" autocomplete="current-password">
-                        <button type="submit" class="btn btn-primary w-full font-bold py-3 rounded-full text-base">Entrar</button>
+                        <div class="text-center">
+                            <a href="#" id="forgot-password" class="text-sm text-gray-400 hover:text-[var(--sun-yellow)] hover:underline">Esqueci minha senha</a>
+                        </div>
+                        <button type="submit" class="btn btn-primary w-full font-bold py-3 rounded-full text-base !mt-6">Entrar</button>
                     </form>
                     <p id="login-error" class="text-red-500 text-sm mt-4 text-center h-4"></p>
                     <p class="text-center text-sm text-gray-400 mt-6">Não tem uma conta? <a href="#" id="show-register" class="font-semibold text-[var(--sun-yellow)] hover:underline">Cadastre-se</a></p>
                 </div>
             </div>
 
-            <!-- Formulário de Cadastro -->
             <div id="register-view" class="hidden">
                  <div class="glassmorphism p-8 rounded-2xl">
                     <h2 class="text-3xl font-bold text-center text-white mb-2">Crie sua Conta</h2>
@@ -136,6 +132,9 @@
                     <form id="register-form" class="space-y-4">
                         <input type="text" id="register-name" placeholder="Nome Completo" required class="form-input w-full p-3 rounded-lg" autocomplete="name">
                         <input type="email" id="register-email" placeholder="Email" required class="form-input w-full p-3 rounded-lg" autocomplete="email">
+                        <select id="register-regional" required class="form-select w-full p-3 rounded-lg">
+                            <option value="" disabled selected>Selecione sua Regional</option>
+                        </select>
                         <input type="password" id="register-password" placeholder="Senha (mínimo 6 caracteres)" required class="form-input w-full p-3 rounded-lg" autocomplete="new-password">
                         <input type="password" id="register-confirm-password" placeholder="Confirmar Senha" required class="form-input w-full p-3 rounded-lg" autocomplete="new-password">
                         <button type="submit" class="btn btn-primary w-full font-bold py-3 rounded-full text-base">Cadastrar</button>
@@ -147,7 +146,6 @@
         </div>
     </div>
     
-    <!-- ===== APLICAÇÃO PRINCIPAL (escondida por padrão) ===== -->
     <div id="app-container" class="hidden">
         <header class="fixed top-0 left-0 w-full z-50 py-3 px-6 md:px-12 glassmorphism">
             <div class="container mx-auto flex justify-between items-center">
@@ -161,7 +159,6 @@
                              <i class="fa-solid fa-table-columns"></i> Dashboard
                          </button>
                      </div>
-                     <!-- Ícone de Notificação -->
                      <div id="notification-bell" class="relative cursor-pointer p-2 rounded-full hover:bg-white/10 transition-colors">
                         <i class="fa-solid fa-bell text-white text-lg"></i>
                         <span id="notification-badge" class="hidden absolute top-0 right-0 bg-red-500 text-white text-xs w-4 h-4 rounded-full flex items-center justify-center font-bold"></span>
@@ -179,13 +176,13 @@
         </header>
 
         <main class="pt-24 pb-12 relative z-10">
-            <!-- Seção de estatísticas (oculta para 'dono') -->
             <section id="dashboard-stats" class="container mx-auto px-6 md:px-12 mb-12 hidden">
-                <div class="grid grid-cols-2 md:grid-cols-4 gap-4 text-center">
+                <div class="grid grid-cols-2 md:grid-cols-5 gap-4 text-center">
                     <div class="glassmorphism p-4 rounded-lg"><h4 class="text-2xl font-bold text-[var(--sun-yellow)]" id="count-total">0</h4><p class="text-sm text-gray-400">Total</p></div>
                     <div class="glassmorphism p-4 rounded-lg"><h4 class="text-2xl font-bold text-yellow-500" id="count-pending">0</h4><p class="text-sm text-gray-400">Aguardando</p></div>
                     <div class="glassmorphism p-4 rounded-lg"><h4 class="text-2xl font-bold text-green-500" id="count-approved">0</h4><p class="text-sm text-gray-400">Aprovadas</p></div>
                     <div class="glassmorphism p-4 rounded-lg"><h4 class="text-2xl font-bold text-red-500" id="count-rejected">0</h4><p class="text-sm text-gray-400">Recusadas</p></div>
+                    <div class="glassmorphism p-4 rounded-lg"><h4 class="text-2xl font-bold text-gray-500" id="count-expired">0</h4><p class="text-sm text-gray-400">Expiradas</p></div>
                 </div>
             </section>
 
@@ -195,34 +192,43 @@
                     <div class="flex justify-between items-center mb-6">
                         <h3 class="text-2xl font-bold">Histórico de Trocas</h3>
                         <div id="export-container" class="flex space-x-3">
-                            <!-- Botões de exportar e excluir tudo para o dono -->
-                        </div>
+                            </div>
                     </div>
                     <div id="shift-list" class="space-y-4"></div>
                 </div>
             </div>
         </main>
-        <!-- FOOTER -->
         <footer class="py-6 px-6 md:px-12 text-center text-gray-400 text-sm">
             Desenvolvido por <a href="https://www.linkedin.com/in/jordan-luiz-3ab157363?utm_source=share&utm_campaign=share_via&utm_content=profile&utm_medium=ios_app" target="_blank" class="font-bold text-white hover:underline whitespace-nowrap">@jordanlvs <i class="fa-solid fa-circle-check verified-badge"></i></a> (Proprietário da <a href="https://www.instagram.com/weblv.dev/" target="_blank" class="font-bold text-white hover:underline">WebLv)</a>        
         </footer>
     </div>
     
-    <!-- ===== MODAIS ===== -->
     <div id="modal-container"></div>
 
-    <!-- Firebase SDK -->
     <script type="module" src="https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js"></script>
     <script type="module" src="https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js"></script>
     <script type="module" src="https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js"></script>
 
-    <!-- Lógica da Aplicação -->
     <script type="module">
         // --- SDK IMPORTS ---
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-        import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, onAuthStateChanged, signOut, sendPasswordResetEmail } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
         import { getFirestore, collection, addDoc, onSnapshot, doc, updateDoc, query, orderBy, serverTimestamp, getDoc, setDoc, getDocs, where, deleteDoc, writeBatch } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
+        // --- CONFIGURAÇÕES GLOBAIS ---
+        /**
+         * IMPORTANTE: Edite esta lista para incluir as regionais da sua empresa.
+         * Elas aparecerão no menu de seleção durante o cadastro.
+         */
+        const availableRegions = [
+            "Sul", 
+            "Norte", 
+            "Leste", 
+            "Oeste", 
+            "Itajubá",
+            "Pouso Alegre"
+        ];
+        
         // --- FIREBASE CONFIG ---
         const firebaseConfig = {
             apiKey: "AIzaSyA0UFqsNRUGVwDpYcwduab8WaxoVrMxiBA",
@@ -248,9 +254,26 @@
         let allShifts = [];
         let allUsers = new Map();
         let userNotifications = [];
-        let statusChart = null;
-        let monthlyChart = null;
         let unsubscribeListeners = []; // Array para guardar todos os listeners
+
+        // --- HELPER FUNCTIONS ---
+        function normalizeRegion(regionStr) {
+            if (!regionStr) return '';
+            return regionStr.toLowerCase().replace('regional', '').trim();
+        }
+
+        function getShiftStatus(shift) {
+            if (!shift || !shift.status) return 'Desconhecido';
+            let currentStatus = shift.status;
+            const now = new Date();
+            const originalDate = new Date(shift.originalDate);
+
+            // A solicitação expira se a data original do plantão já passou
+            if (currentStatus === 'Aguardando Confirmação' && now > originalDate) {
+                return 'Expirada';
+            }
+            return currentStatus;
+        }
 
         // --- TEMPLATES HTML ---
         const confirmationModalHTML = (title, message, confirmClass) => `
@@ -270,10 +293,29 @@
                 </div>
             </div>`;
 
+        const forgotPasswordModalHTML = `
+            <div class="modal-overlay fixed inset-0 bg-black bg-opacity-70 z-[100] flex items-center justify-center p-4 opacity-0">
+                <div class="modal-content glassmorphism rounded-2xl p-8 max-w-sm w-full shadow-lg scale-95 opacity-0">
+                    <div class="flex justify-between items-center mb-4">
+                        <h4 class="text-xl font-bold">Redefinir Senha</h4>
+                        <button class="modal-close p-2 rounded-full hover:bg-white/10">
+                            <i class="fa-solid fa-xmark w-5 h-5 text-white"></i>
+                        </button>
+                    </div>
+                    <p class="text-gray-300 mb-6 text-sm">Insira seu e-mail abaixo. Se ele estiver cadastrado, enviaremos um link para você criar uma nova senha.</p>
+                    <form id="reset-password-form" class="space-y-4">
+                        <input type="email" id="reset-email" placeholder="Digite seu e-mail" required class="form-input w-full p-3 rounded-lg">
+                        <button type="submit" id="reset-submit-btn" class="btn btn-primary w-full font-bold py-3 rounded-full text-base">Enviar Link</button>
+                    </form>
+                    <p id="reset-message" class="text-sm mt-4 text-center h-4"></p>
+                </div>
+            </div>`;
+
         const profileModalHTML = (user, isOwnProfile) => {
             const photo = user.photoURL || `https://placehold.co/80x80/1a1a1a/f0f0f0?text=${user.name.charAt(0)}`;
             const posto = user.posto || 'Não informado';
-            const cidade = user.cidade || 'Não informado';
+            const cidade = user.cidade || 'Não informada';
+            const regional = user.regional || 'Não informada';
             
             return `
             <div class="modal-overlay fixed inset-0 bg-black bg-opacity-70 z-[100] flex items-center justify-center p-4 opacity-0">
@@ -292,6 +334,7 @@
                             </div>
                             <p><strong class="text-gray-400 w-20 inline-block">Posto:</strong> ${posto}</p>
                             <p><strong class="text-gray-400 w-20 inline-block">Cidade:</strong> ${cidade}</p>
+                            <p><strong class="text-gray-400 w-20 inline-block">Regional:</strong> ${regional}</p>
                             ${isOwnProfile ? '<div class="pt-4 flex justify-end"><button id="edit-profile-btn" class="btn btn-secondary font-bold py-2 px-6 rounded-full text-base">Editar Perfil</button></div>' : ''}
                         </div>
                     </div>
@@ -309,7 +352,11 @@
                         </div>
                         <div>
                             <label class="text-sm font-medium text-gray-300">Cidade</label>
-                            <input type="text" id="profile-cidade" value="${user.cidade || ''}" placeholder="Ex: São Paulo" class="form-input w-full p-3 rounded-lg mt-1" ${user.cidade ? 'readonly' : ''}>
+                            <input type="text" id="profile-cidade" value="${user.cidade || ''}" placeholder="Ex: São Paulo" class="form-input w-full p-3 rounded-lg mt-1" readonly>
+                        </div>
+                        <div>
+                            <label class="text-sm font-medium text-gray-300">Regional</label>
+                            <input type="text" id="profile-regional" value="${user.regional || ''}" placeholder="Ex: Regional Sul" class="form-input w-full p-3 rounded-lg mt-1" readonly>
                         </div>
                         <details class="pt-2">
                             <summary class="text-sm text-gray-400 cursor-pointer hover:text-white">Como adicionar minha foto de perfil?</summary>
@@ -324,57 +371,55 @@
             </div>`;
         };
 
-const dashboardModalHTML = () => `
-    <div class="modal-overlay fixed inset-0 bg-black bg-opacity-70 z-[100] flex items-center justify-center p-4 opacity-0">
-        <div class="modal-content glassmorphism rounded-2xl p-6 md:p-8 max-w-4xl w-full shadow-lg scale-95 opacity-0 flex flex-col" style="max-height: 90vh;">
-            <div class="flex justify-between items-center mb-6 flex-shrink-0">
-                <h3 class="text-2xl font-bold">Dashboard de Ocorrências</h3>
-                <button class="modal-close p-2 rounded-full hover:bg-white/10">
-                    <i class="fa-solid fa-xmark w-5 h-5 text-white"></i>
-                </button>
-            </div>
+        const dashboardModalHTML = (regionalName) => `
+            <div class="modal-overlay fixed inset-0 bg-black bg-opacity-70 z-[100] flex items-center justify-center p-4 opacity-0">
+                <div class="modal-content glassmorphism rounded-2xl p-6 md:p-8 max-w-4xl w-full shadow-lg scale-95 opacity-0 flex flex-col" style="max-height: 90vh;">
+                    <div class="flex justify-between items-center mb-6 flex-shrink-0">
+                        <h3 class="text-2xl font-bold">Dashboard de Ocorrências - <span class="text-[var(--sun-yellow)] text-xl">${regionalName}</span></h3>
+                        <button class="modal-close p-2 rounded-full hover:bg-white/10">
+                            <i class="fa-solid fa-xmark w-5 h-5 text-white"></i>
+                        </button>
+                    </div>
 
-            <div class="flex-grow overflow-y-auto pr-4 -mr-4">
-                <!-- Grid de Estatísticas Principais -->
-                <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-                    <div class="stat-card bg-gray-800/50 p-4 rounded-lg border-l-[var(--sun-yellow)]" style="animation-delay: 0s;">
-                        <div class="flex items-center text-gray-400 text-sm font-medium"><i class="fa-solid fa-layer-group mr-2"></i> Total</div>
-                        <div id="db-total-count" class="text-3xl font-bold mt-1 text-white">0</div>
-                    </div>
-                    <div class="stat-card bg-gray-800/50 p-4 rounded-lg border-l-[var(--color-approved)]" style="animation-delay: 0.1s;">
-                        <i class="fa-solid fa-circle-check mr-2 text-[var(--color-approved)] !text-[var(--color-approved)]"></i>
-                        <div id="db-approved-count" class="text-3xl font-bold mt-1 text-white">0</div>
-                    </div>
-                    <div class="stat-card bg-gray-800/50 p-4 rounded-lg border-l-[var(--color-pending)]" style="animation-delay: 0.2s;">
-                        <div class="flex items-center text-gray-400 text-sm font-medium"><i class="fa-solid fa-clock mr-2 text-[var(--color-pending)]"></i> Pendentes</div>
-                        <div id="db-pending-count" class="text-3xl font-bold mt-1 text-white">0</div>
-                    </div>
-                    <div class="stat-card bg-gray-800/50 p-4 rounded-lg border-l-[var(--color-rejected)]" style="animation-delay: 0.3s;">
-                        <div class="flex items-center text-gray-400 text-sm font-medium"><i class="fa-solid fa-circle-xmark mr-2 text-[var(--color-rejected)]"></i> Recusadas</div>
-                        <div id="db-rejected-count" class="text-3xl font-bold mt-1 text-white">0</div>
-                    </div>
-                </div>
+                    <div class="flex-grow overflow-y-auto pr-4 -mr-4">
+                        <div class="grid grid-cols-2 lg:grid-cols-5 gap-4 mb-8">
+                            <div class="stat-card bg-gray-800/50 p-4 rounded-lg border-l-[var(--sun-yellow)]" style="animation-delay: 0s;">
+                                <div class="flex items-center text-gray-400 text-sm font-medium"><i class="fa-solid fa-layer-group mr-2"></i> Total</div>
+                                <div id="db-total-count" class="text-3xl font-bold mt-1 text-white">0</div>
+                            </div>
+                            <div class="stat-card bg-gray-800/50 p-4 rounded-lg border-l-[var(--color-approved)]" style="animation-delay: 0.1s;">
+                                <div class="flex items-center text-gray-400 text-sm font-medium"><i class="fa-solid fa-circle-check mr-2 text-[var(--color-approved)]"></i> Aprovadas</div>
+                                <div id="db-approved-count" class="text-3xl font-bold mt-1 text-white">0</div>
+                            </div>
+                            <div class="stat-card bg-gray-800/50 p-4 rounded-lg border-l-[var(--color-pending)]" style="animation-delay: 0.2s;">
+                                <div class="flex items-center text-gray-400 text-sm font-medium"><i class="fa-solid fa-clock mr-2 text-[var(--color-pending)]"></i> Pendentes</div>
+                                <div id="db-pending-count" class="text-3xl font-bold mt-1 text-white">0</div>
+                            </div>
+                            <div class="stat-card bg-gray-800/50 p-4 rounded-lg border-l-[var(--color-rejected)]" style="animation-delay: 0.3s;">
+                                <div class="flex items-center text-gray-400 text-sm font-medium"><i class="fa-solid fa-circle-xmark mr-2 text-[var(--color-rejected)]"></i> Recusadas</div>
+                                <div id="db-rejected-count" class="text-3xl font-bold mt-1 text-white">0</div>
+                            </div>
+                            <div class="stat-card bg-gray-800/50 p-4 rounded-lg border-l-[var(--color-expired)]" style="animation-delay: 0.4s;">
+                                <div class="flex items-center text-gray-400 text-sm font-medium"><i class="fa-solid fa-calendar-xmark mr-2 text-[var(--color-expired)]"></i> Expiradas</div>
+                                <div id="db-expired-count" class="text-3xl font-bold mt-1 text-white">0</div>
+                            </div>
+                        </div>
 
-                <div class="grid md:grid-cols-2 gap-8">
-                    <!-- Detalhes por Status -->
-                    <div>
-                        <h4 class="font-bold text-lg mb-4">Detalhes por Status</h4>
-                        <div id="status-details-list" class="space-y-4">
-                            <!-- Conteúdo gerado por JS -->
+                        <div class="grid md:grid-cols-2 gap-8">
+                            <div>
+                                <h4 class="font-bold text-lg mb-4">Detalhes por Status</h4>
+                                <div id="status-details-list" class="space-y-4">
+                                    </div>
+                            </div>
+                            <div>
+                                <h4 class="font-bold text-lg mb-4">Trocas por Mês</h4>
+                                <div id="monthly-stats-list" class="space-y-3">
+                                    </div>
+                            </div>
                         </div>
                     </div>
-                    <!-- Trocas por Mês -->
-                    <div>
-                        <h4 class="font-bold text-lg mb-4">Trocas por Mês</h4>
-                        <div id="monthly-stats-list" class="space-y-3">
-                            <!-- Conteúdo gerado por JS -->
-                        </div>
-                    </div>
                 </div>
-            </div>
-        </div>
-    </div>`;
-
+            </div>`;
         
         const notificationModalHTML = () => `
             <div class="modal-overlay fixed inset-0 bg-black bg-opacity-70 z-[100] flex items-center justify-center p-4 opacity-0">
@@ -386,11 +431,9 @@ const dashboardModalHTML = () => `
                         </button>
                     </div>
                     <div id="notification-list" class="flex-grow overflow-y-auto -mr-4 pr-4 space-y-2">
-                        <!-- Itens de notificação serão inseridos aqui -->
-                    </div>
+                        </div>
                     <div id="notification-actions" class="mt-6 flex-shrink-0">
-                       <!-- Ações como "Marcar todas como lidas" serão inseridas aqui -->
-                    </div>
+                       </div>
                 </div>
             </div>`;
 
@@ -401,7 +444,7 @@ const dashboardModalHTML = () => `
                     <div>
                         <label class="text-sm font-medium text-gray-300">Trocar com o(a) colega</label>
                         <select id="colleagueName" required class="form-select w-full p-3 rounded-lg mt-1">
-                            <option value="" disabled selected>Selecione um colega</option>
+                            <option value="" disabled selected>Selecione um colega da sua regional</option>
                         </select>
                         <div id="selected-colleague-preview" class="hidden mt-3 p-3 bg-white/5 rounded-lg border border-white/10 flex items-center space-x-3">
                         </div>
@@ -415,8 +458,8 @@ const dashboardModalHTML = () => `
                         <input type="datetime-local" id="desiredDate" required class="form-input w-full p-3 rounded-lg mt-1">
                     </div>
                     <div>
-                         <label class="text-sm font-medium text-gray-300">Motivo (opcional)</label>
-                        <textarea id="reason" placeholder="Ex: Consulta médica" rows="3" class="form-input w-full p-3 rounded-lg mt-1"></textarea>
+                         <label class="text-sm font-medium text-gray-300">Motivo</label>
+                        <textarea id="reason" placeholder="Ex: Consulta médica" rows="3" class="form-input w-full p-3 rounded-lg mt-1" required></textarea>
                     </div>
                     <div class="pt-2">
                         <button type="submit" class="btn btn-primary w-full font-bold py-3 px-8 rounded-full text-base">Enviar Solicitação</button>
@@ -426,10 +469,22 @@ const dashboardModalHTML = () => `
 
         // --- AUTHENTICATION LOGIC ---
         function initializeAuth() {
+            // Popula o seletor de regionais no cadastro
+            const regionSelect = document.getElementById('register-regional');
+            if (regionSelect) {
+                availableRegions.sort().forEach(region => {
+                    const option = document.createElement('option');
+                    option.value = region;
+                    option.textContent = region;
+                    regionSelect.appendChild(option);
+                });
+            }
+
             const loginForm = document.getElementById('login-form');
             const registerForm = document.getElementById('register-form');
             const showRegisterBtn = document.getElementById('show-register');
             const showLoginBtn = document.getElementById('show-login');
+            const forgotPasswordBtn = document.getElementById('forgot-password');
 
             onAuthStateChanged(auth, (user) => {
                 unsubscribeListeners.forEach(unsub => unsub());
@@ -445,7 +500,6 @@ const dashboardModalHTML = () => `
                             if (JSON.stringify(newProfile) !== JSON.stringify(currentUserProfile)) {
                                 currentUserProfile = newProfile;
                                 initializeAppUI();
-                            } else {
                             }
                         } else {
                             console.error('[DEBUG] ERRO: Documento do usuário não encontrado no Firestore!');
@@ -481,21 +535,36 @@ const dashboardModalHTML = () => `
                 e.preventDefault();
                 const name = document.getElementById('register-name').value;
                 const email = document.getElementById('register-email').value;
+                const regional = document.getElementById('register-regional').value;
                 const password = document.getElementById('register-password').value;
                 const confirmPassword = document.getElementById('register-confirm-password').value;
                 const errorP = document.getElementById('register-error');
                 errorP.textContent = '';
 
                 if (password !== confirmPassword) { errorP.textContent = 'As senhas não coincidem.'; return; }
+                if (!regional) { errorP.textContent = 'Por favor, selecione uma regional.'; return; }
 
                 try {
                     const userCredential = await createUserWithEmailAndPassword(auth, email, password);
-                    await setDoc(doc(db, "users", userCredential.user.uid), { name, email, role: 'vigilante', posto: '', cidade: '', photoURL: '' });
+                    await setDoc(doc(db, "users", userCredential.user.uid), { 
+                        name, 
+                        email, 
+                        regional,
+                        role: 'vigilante', 
+                        posto: '', 
+                        cidade: '', 
+                        photoURL: '' 
+                    });
                 } catch (error) {
                     if (error.code === 'auth/email-already-in-use') errorP.textContent = 'Este email já está em uso.';
                     else if (error.code === 'auth/weak-password') errorP.textContent = 'A senha deve ter no mínimo 6 caracteres.';
                     else errorP.textContent = 'Ocorreu um erro ao cadastrar.';
                 }
+            });
+
+            forgotPasswordBtn.addEventListener('click', (e) => {
+                e.preventDefault();
+                openForgotPasswordModal();
             });
 
             showRegisterBtn.addEventListener('click', (e) => { e.preventDefault(); document.getElementById('login-view').classList.add('hidden'); document.getElementById('register-view').classList.remove('hidden'); });
@@ -532,7 +601,7 @@ const dashboardModalHTML = () => `
                 shiftListContainer.classList.remove('lg:col-span-3');
                 shiftListContainer.classList.add('lg:col-span-2');
                 supervisorActions.classList.add('hidden');
-                dashboardStats.classList.remove('hidden');
+                dashboardStats.classList.add('hidden');
             }
             
             await fetchAllUsers();
@@ -550,10 +619,14 @@ const dashboardModalHTML = () => `
             }
             
             const colleaguesSelect = document.getElementById('colleagueName');
-            if (colleaguesSelect) {
-                colleaguesSelect.innerHTML = '<option value="" disabled selected>Selecione um colega</option>';
+            if (colleaguesSelect && currentUserProfile?.regional) {
+                colleaguesSelect.innerHTML = '<option value="" disabled selected>Selecione um colega da sua regional</option>';
+                const currentUserRegion = normalizeRegion(currentUserProfile.regional);
+
                 allUsers.forEach(user => {
-                    if (user.id !== currentUserProfile.uid && user.role === 'vigilante') {
+                    const colleagueRegion = normalizeRegion(user.regional);
+                    // Apenas vigilantes da mesma regional (e que não seja o próprio usuário)
+                    if (user.id !== currentUserProfile.uid && user.role === 'vigilante' && colleagueRegion === currentUserRegion) {
                         const option = document.createElement('option');
                         option.value = user.name;
                         option.textContent = user.name;
@@ -611,8 +684,22 @@ const dashboardModalHTML = () => `
             
             const isSupervisor = currentUserProfile.role === 'supervisor';
             const isDono = currentUserProfile.role === 'dono';
+            const currentUserRegion = normalizeRegion(currentUserProfile.regional);
 
-            const visibleShifts = isSupervisor || isDono ? allShifts : allShifts.filter(s => s.requesterUid === currentUserProfile.uid || s.colleagueUid === currentUserProfile.uid);
+            let visibleShifts = [];
+            if (isDono) {
+                visibleShifts = allShifts; // Dono vê tudo
+            } else if (isSupervisor) {
+                // Supervisor só vê trocas se tiver uma regional definida
+                if (currentUserRegion) {
+                    visibleShifts = allShifts.filter(s => normalizeRegion(s.regional) === currentUserRegion);
+                } else {
+                    visibleShifts = []; // Nenhuma troca visível se não tiver regional
+                }
+            } else {
+                // Vigilante vê apenas as trocas em que está envolvido
+                visibleShifts = allShifts.filter(s => s.requesterUid === currentUserProfile.uid || s.colleagueUid === currentUserProfile.uid);
+            }
 
             if (visibleShifts.length === 0) {
                 shiftList.innerHTML = `<div class="text-center text-gray-500 p-8 bg-[#1a1a1a]/50 rounded-lg">Nenhuma solicitação para você.</div>`;
@@ -624,18 +711,10 @@ const dashboardModalHTML = () => `
                         'Aprovada': { class: 'status-aprovada', text: 'Aprovada', icon: 'fa-solid fa-circle-check', iconColor: 'text-green-500' }, 
                         'Recusada': { class: 'status-recusada', text: 'Recusada pelo Colega', icon: 'fa-solid fa-circle-xmark', iconColor: 'text-red-500' }, 
                         'Recusada pelo Supervisor': { class: 'status-recusada', text: 'Recusada pelo Supervisor', icon: 'fa-solid fa-shield-xmark', iconColor: 'text-yellow-600' }, 
-                        'Expirada': { class: 'status-expirada', text: 'Expirada', icon: 'fa-solid fa-calendar-xmark', iconColor: 'text-red-400' }, 
+                        'Expirada': { class: 'status-expirada', text: 'Expirada', icon: 'fa-solid fa-calendar-xmark', iconColor: 'text-gray-400' }, 
                     };
-
-                    const now = new Date();
-                    const originalDate = new Date(shift.originalDate);
-                    const desiredDate = new Date(shift.desiredDate);
-                    let currentStatus = shift.status;
-
-                    if (currentStatus === 'Aguardando Confirmação' && now > originalDate && now > desiredDate) {
-                        currentStatus = 'Expirada';
-                    }
-
+                    
+                    const currentStatus = getShiftStatus(shift);
                     const statusInfo = statusMap[currentStatus];
                     const card = document.createElement('div');
                     card.className = `shift-card p-5 rounded-lg ${statusInfo.class}`;
@@ -676,25 +755,41 @@ const dashboardModalHTML = () => `
         }
         
         function updateDashboardStats() {
-            const dashboardStats = document.getElementById('dashboard-stats');
-            if (dashboardStats.classList.contains('hidden')) return;
+            if (!currentUserProfile || (currentUserProfile.role !== 'supervisor' && currentUserProfile.role !== 'dono')) {
+                document.getElementById('dashboard-stats').classList.add('hidden');
+                return;
+            }
+            document.getElementById('dashboard-stats').classList.remove('hidden');
 
-            const counts = allShifts.reduce((acc, shift) => {
-                const status = shift.status;
+            const isDono = currentUserProfile.role === 'dono';
+            const currentUserRegion = normalizeRegion(currentUserProfile.regional);
+            
+            let shiftsToCount = [];
+            if (isDono) {
+                shiftsToCount = allShifts;
+            } else if (currentUserProfile.role === 'supervisor' && currentUserRegion) {
+                shiftsToCount = allShifts.filter(s => normalizeRegion(s.regional) === currentUserRegion);
+            }
+
+            const counts = shiftsToCount.reduce((acc, shift) => {
+                const status = getShiftStatus(shift);
                 if (status === 'Aguardando Confirmação' || status === 'Confirmada - Aguardando Supervisor') {
                     acc.pending++;
                 } else if (status === 'Aprovada') {
                     acc.approved++;
-                } else if (status === 'Recusada' || status === 'Recusada pelo Supervisor') {
+                } else if (status.startsWith('Recusada')) {
                     acc.rejected++;
+                } else if (status === 'Expirada') {
+                    acc.expired++;
                 }
                 return acc;
-            }, { pending: 0, approved: 0, rejected: 0 });
+            }, { pending: 0, approved: 0, rejected: 0, expired: 0 });
 
-            document.getElementById('count-total').textContent = allShifts.length;
+            document.getElementById('count-total').textContent = shiftsToCount.length;
             document.getElementById('count-pending').textContent = counts.pending;
             document.getElementById('count-approved').textContent = counts.approved;
             document.getElementById('count-rejected').textContent = counts.rejected;
+            document.getElementById('count-expired').textContent = counts.expired;
 
             const exportContainer = document.getElementById('export-container');
             if (currentUserProfile && currentUserProfile.role === 'dono') {
@@ -729,10 +824,46 @@ const dashboardModalHTML = () => `
             }
         }
 
-        function handleLogout() { signOut(auth); }
+        async function handleLogout() { 
+            await signOut(auth);
+            window.location.reload();
+        }
+
         function handleProfileClick() { openProfileModal(currentUserProfile, true); }
         function handleOpenDashboard() { openDashboardModal(); }
         function handleOpenNotifications() { openNotificationsModal(); }
+
+        function openForgotPasswordModal() {
+            const modalEl = createAndAppendModal(forgotPasswordModalHTML);
+            const form = modalEl.querySelector('#reset-password-form');
+            const emailInput = modalEl.querySelector('#reset-email');
+            const messageEl = modalEl.querySelector('#reset-message');
+            const submitBtn = modalEl.querySelector('#reset-submit-btn');
+
+            form.addEventListener('submit', (e) => {
+                e.preventDefault();
+                const email = emailInput.value;
+                submitBtn.disabled = true;
+                submitBtn.textContent = 'Enviando...';
+                messageEl.textContent = '';
+
+                sendPasswordResetEmail(auth, email)
+                    .then(() => {
+                        messageEl.textContent = 'Link enviado! Verifique seu e-mail (Olhe seu Spam).';
+                        messageEl.className = 'text-green-500 text-sm mt-4 text-center h-4';
+                        emailInput.value = '';
+                    })
+                    .catch((error) => {
+                        console.error("Erro ao redefinir senha:", error);
+                        messageEl.textContent = 'Falha ao enviar. Verifique o e-mail.';
+                        messageEl.className = 'text-red-500 text-sm mt-4 text-center h-4';
+                    })
+                    .finally(() => {
+                        submitBtn.disabled = false;
+                        submitBtn.textContent = 'Enviar Link';
+                    });
+            });
+        }
 
         async function handleShiftFormSubmit(e) {
             e.preventDefault();
@@ -750,7 +881,8 @@ const dashboardModalHTML = () => `
                 desiredDate: document.getElementById('desiredDate').value,
                 reason: document.getElementById('reason').value,
                 status: 'Aguardando Confirmação',
-                createdAt: serverTimestamp()
+                createdAt: serverTimestamp(),
+                regional: currentUserProfile.regional || 'Não especificada'
             };
             
             const docRef = await addDoc(collection(db, "shifts"), newShiftData);
@@ -787,14 +919,19 @@ const dashboardModalHTML = () => `
                     switch (newStatus) {
                         case 'Confirmada - Aguardando Supervisor':
                             await createNotification(shift.requesterUid, `${shift.colleague} aceitou sua solicitação de troca.`, shift.id);
-                            supervisors.forEach(sup => createNotification(sup.id, `A troca entre ${shift.requester} e ${shift.colleague} aguarda aprovação.`, shift.id));
+                            supervisors.forEach(sup => {
+                                if (normalizeRegion(sup.regional) === normalizeRegion(shift.regional)) {
+                                    createNotification(sup.id, `A troca entre ${shift.requester} e ${shift.colleague} aguarda aprovação.`, shift.id)
+                                }
+                            });
                             break;
                         case 'Recusada':
                             await createNotification(shift.requesterUid, `${shift.colleague} recusou sua solicitação de troca.`, shift.id);
                             break;
                         case 'Aprovada':
-                            await createNotification(shift.requesterUid, `Sua troca com ${shift.colleague} foi APROVADA.`, shift.id);
-                            await createNotification(shift.colleagueUid, `Sua troca com ${shift.requester} foi APROVADA.`, shift.id);
+                            const approverName = currentUserProfile.name.split(' ')[0]; // Pega o primeiro nome de quem aprovou
+                            await createNotification(shift.requesterUid, `Sua troca com ${shift.colleague} foi APROVADA por ${approverName}.`, shift.id);
+                            await createNotification(shift.colleagueUid, `Sua troca com ${shift.requester} foi APROVADA por ${approverName}.`, shift.id);
                             break;
                         case 'Recusada pelo Supervisor':
                             await createNotification(shift.requesterUid, `Sua troca com ${shift.colleague} foi RECUSADA pelo supervisor.`, shift.id);
@@ -880,126 +1017,129 @@ const dashboardModalHTML = () => `
             e.preventDefault();
             const photoURL = document.getElementById('profile-photo-url').value;
             const posto = document.getElementById('profile-posto').value;
-            const cidade = document.getElementById('profile-cidade').value;
+            
             if (!currentUserProfile || !currentUserProfile.uid) return;
             
             const dataToUpdate = { photoURL, posto };
-            if (!currentUserProfile.cidade && cidade) dataToUpdate.cidade = cidade;
             
             const userDocRef = doc(db, "users", currentUserProfile.uid);
             try {
                 await updateDoc(userDocRef, dataToUpdate);
                 hideModalContainer(modalEl);
-                // Não precisa de reload, o onSnapshot cuidará da atualização.
             } catch (error) {
                 console.error("Erro ao salvar perfil:", error);
             }
         }
 
-function openDashboardModal() {
-    // Remove as variáveis antigas dos gráficos, se existirem
-    statusChart = null;
-    monthlyChart = null;
+        function openDashboardModal() {
+            if (!currentUserProfile) return;
 
-    const modalEl = createAndAppendModal(dashboardModalHTML());
-    if (!modalEl) return;
+            const isDono = currentUserProfile.role === 'dono';
+            const currentUserRegion = normalizeRegion(currentUserProfile.regional);
+            const regionalTitle = isDono ? 'Todas as Regionais' : (currentUserProfile.regional || 'Sem Regional Definida');
+            
+            let shiftsToAnalyze = [];
+            if (isDono) {
+                shiftsToAnalyze = allShifts;
+            } else if (currentUserProfile.role === 'supervisor' && currentUserRegion) {
+                shiftsToAnalyze = allShifts.filter(s => normalizeRegion(s.regional) === currentUserRegion);
+            }
 
-    // --- Lógica de Animação e Cálculo ---
-    const animateCountUp = (el, endValue) => {
-        let startValue = 0;
-        const duration = 1000; // 1 segundo
-        const startTime = performance.now();
+            const modalEl = createAndAppendModal(dashboardModalHTML(regionalTitle));
+            if (!modalEl) return;
 
-        function step(currentTime) {
-            const elapsedTime = currentTime - startTime;
-            const progress = Math.min(elapsedTime / duration, 1);
-            el.textContent = Math.floor(progress * endValue).toLocaleString('pt-BR');
-            if (progress < 1) {
+            const animateCountUp = (el, endValue) => {
+                let startValue = 0;
+                const duration = 1000;
+                const startTime = performance.now();
+
+                function step(currentTime) {
+                    const elapsedTime = currentTime - startTime;
+                    const progress = Math.min(elapsedTime / duration, 1);
+                    el.textContent = Math.floor(progress * endValue).toLocaleString('pt-BR');
+                    if (progress < 1) {
+                        requestAnimationFrame(step);
+                    } else {
+                        el.textContent = endValue.toLocaleString('pt-BR');
+                    }
+                }
                 requestAnimationFrame(step);
+            };
+
+            const counts = shiftsToAnalyze.reduce((acc, shift) => {
+                const status = getShiftStatus(shift);
+                if (status === 'Aguardando Confirmação' || status === 'Confirmada - Aguardando Supervisor') acc.pending++;
+                else if (status === 'Aprovada') acc.approved++;
+                else if (status.startsWith('Recusada')) acc.rejected++;
+                else if (status === 'Expirada') acc.expired++;
+                return acc;
+            }, { pending: 0, approved: 0, rejected: 0, expired: 0 });
+            counts.total = shiftsToAnalyze.length;
+
+            const statusDetails = shiftsToAnalyze.reduce((acc, s) => {
+                const status = getShiftStatus(s);
+                acc[status] = (acc[status] || 0) + 1;
+                return acc;
+            }, {});
+
+            const monthlyCounts = shiftsToAnalyze.reduce((acc, s) => {
+                if (s.createdAt?.toDate) {
+                    const month = s.createdAt.toDate().toLocaleString('pt-BR', { month: 'long' });
+                    const year = s.createdAt.toDate().getFullYear();
+                    const key = `${month.charAt(0).toUpperCase() + month.slice(1)} de ${year}`;
+                    acc[key] = (acc[key] || 0) + 1;
+                }
+                return acc;
+            }, {});
+
+            animateCountUp(modalEl.querySelector('#db-total-count'), counts.total);
+            animateCountUp(modalEl.querySelector('#db-approved-count'), counts.approved);
+            animateCountUp(modalEl.querySelector('#db-pending-count'), counts.pending);
+            animateCountUp(modalEl.querySelector('#db-rejected-count'), counts.rejected);
+            animateCountUp(modalEl.querySelector('#db-expired-count'), counts.expired);
+
+            const statusListEl = modalEl.querySelector('#status-details-list');
+            statusListEl.innerHTML = '';
+            const statusColors = { 'Aprovada': 'var(--color-approved)', 'Recusada': 'var(--color-rejected)', 'Aguardando': 'var(--color-pending)', 'Confirmada': 'var(--color-pending)', 'Expirada': 'var(--color-expired)' };
+
+            Object.entries(statusDetails).forEach(([status, count]) => {
+                const percentage = counts.total > 0 ? (count / counts.total * 100).toFixed(1) : 0;
+                let colorKey = Object.keys(statusColors).find(key => status.includes(key)) || 'var(--sun-yellow)';
+                
+                const itemHtml = `
+                    <div>
+                        <div class="flex justify-between items-center mb-1 text-sm">
+                            <span class="font-semibold text-gray-300">${status}</span>
+                            <span class="text-gray-400">${count} (${percentage}%)</span>
+                        </div>
+                        <div class="progress-bar-bg">
+                            <div class="progress-bar-fill" style="background-color: ${statusColors[colorKey] || '#6b7280'};" data-width="${percentage}%"></div>
+                        </div>
+                    </div>`;
+                statusListEl.insertAdjacentHTML('beforeend', itemHtml);
+            });
+
+            setTimeout(() => {
+                modalEl.querySelectorAll('.progress-bar-fill').forEach(bar => {
+                    bar.style.width = bar.dataset.width;
+                });
+            }, 100);
+
+            const monthlyListEl = modalEl.querySelector('#monthly-stats-list');
+            monthlyListEl.innerHTML = '';
+            if (Object.keys(monthlyCounts).length > 0) {
+                Object.entries(monthlyCounts).forEach(([month, count]) => {
+                    const itemHtml = `
+                        <div class="flex justify-between items-center text-sm p-2 rounded-md hover:bg-white/5">
+                            <span class="text-gray-300">${month}</span>
+                            <span class="font-bold text-white bg-gray-700 px-2 py-0.5 rounded-md">${count} trocas</span>
+                        </div>`;
+                    monthlyListEl.insertAdjacentHTML('beforeend', itemHtml);
+                });
             } else {
-                el.textContent = endValue.toLocaleString('pt-BR');
+                monthlyListEl.innerHTML = `<p class="text-center text-gray-500 text-sm">Nenhum dado mensal para esta regional.</p>`;
             }
         }
-        requestAnimationFrame(step);
-    };
-
-    // 1. Calcular todos os dados
-    const counts = allShifts.reduce((acc, shift) => {
-        const status = shift.status;
-        if (status === 'Aguardando Confirmação' || status === 'Confirmada - Aguardando Supervisor') acc.pending++;
-        else if (status === 'Aprovada') acc.approved++;
-        else if (status.startsWith('Recusada')) acc.rejected++;
-        return acc;
-    }, { pending: 0, approved: 0, rejected: 0 });
-    counts.total = allShifts.length;
-
-    const statusDetails = allShifts.reduce((acc, s) => {
-        acc[s.status] = (acc[s.status] || 0) + 1;
-        return acc;
-    }, {});
-
-    const monthlyCounts = allShifts.reduce((acc, s) => {
-        if (s.createdAt?.toDate) {
-            const month = s.createdAt.toDate().toLocaleString('pt-BR', { month: 'long' });
-            const year = s.createdAt.toDate().getFullYear();
-            const key = `${month.charAt(0).toUpperCase() + month.slice(1)} de ${year}`;
-            acc[key] = (acc[key] || 0) + 1;
-        }
-        return acc;
-    }, {});
-
-    // 2. Animar os cards principais
-    animateCountUp(modalEl.querySelector('#db-total-count'), counts.total);
-    animateCountUp(modalEl.querySelector('#db-approved-count'), counts.approved);
-    animateCountUp(modalEl.querySelector('#db-pending-count'), counts.pending);
-    animateCountUp(modalEl.querySelector('#db-rejected-count'), counts.rejected);
-
-    // 3. Renderizar detalhes de status com barras de progresso
-    const statusListEl = modalEl.querySelector('#status-details-list');
-    statusListEl.innerHTML = '';
-    const statusColors = { 'Aprovada': 'var(--color-approved)', 'Recusada': 'var(--color-rejected)', 'Aguardando': 'var(--color-pending)' };
-
-    Object.entries(statusDetails).forEach(([status, count]) => {
-        const percentage = counts.total > 0 ? (count / counts.total * 100).toFixed(1) : 0;
-        const colorKey = Object.keys(statusColors).find(key => status.includes(key)) || 'var(--sun-yellow)';
-
-        const itemHtml = `
-            <div>
-                <div class="flex justify-between items-center mb-1 text-sm">
-                    <span class="font-semibold text-gray-300">${status}</span>
-                    <span class="text-gray-400">${count} (${percentage}%)</span>
-                </div>
-                <div class="progress-bar-bg">
-                    <div class="progress-bar-fill" style="background-color: ${statusColors[colorKey] || '#6b7280'};" data-width="${percentage}%"></div>
-                </div>
-            </div>`;
-        statusListEl.insertAdjacentHTML('beforeend', itemHtml);
-    });
-
-    // Ativa a animação da barra de progresso após um pequeno delay
-    setTimeout(() => {
-        modalEl.querySelectorAll('.progress-bar-fill').forEach(bar => {
-            bar.style.width = bar.dataset.width;
-        });
-    }, 100);
-
-    // 4. Renderizar lista de trocas por mês
-    const monthlyListEl = modalEl.querySelector('#monthly-stats-list');
-    monthlyListEl.innerHTML = '';
-    if (Object.keys(monthlyCounts).length > 0) {
-        Object.entries(monthlyCounts).forEach(([month, count]) => {
-            const itemHtml = `
-                <div class="flex justify-between items-center text-sm p-2 rounded-md hover:bg-white/5">
-                    <span class="text-gray-300">${month}</span>
-                    <span class="font-bold text-white bg-gray-700 px-2 py-0.5 rounded-md">${count} trocas</span>
-                </div>`;
-            monthlyListEl.insertAdjacentHTML('beforeend', itemHtml);
-        });
-    } else {
-        monthlyListEl.innerHTML = `<p class="text-center text-gray-500 text-sm">Nenhum dado mensal.</p>`;
-    }
-}
-
 
         function openNotificationsModal() {
             const modalEl = createAndAppendModal(notificationModalHTML());
