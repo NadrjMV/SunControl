@@ -17,7 +17,7 @@
 <br>
 
 <p align="center">
-  <em>https://i.postimg.cc/R0qm5H2V/dash.jpg</em>
+  <img src= "https://i.postimg.cc/R0qm5H2V/dash.jpg" >
 </p>
 
 ## Tabela de Conteúdos
