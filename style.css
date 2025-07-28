@@ -1,0 +1,116 @@
+body { font-family: 'Inter', sans-serif; background-color: #0a0a0a; color: #f0f0f0; overflow-x: hidden; }
+:root { 
+    --sun-yellow: #FFC700;
+    --fc-border-color: rgba(255, 255, 255, 0.1);
+    --fc-daygrid-event-dot-width: 8px;
+    --fc-list-event-dot-width: 10px;
+    --fc-list-event-hover-bg-color: rgba(255, 199, 0, 0.1);
+}
+
+.btn { transition: transform 0.2s ease, background-color 0.2s ease, box-shadow 0.2s ease; border: none; cursor: pointer; }
+.btn:hover { transform: scale(1.03); }
+.btn:disabled { background-color: #333; color: #777; cursor: not-allowed; transform: none; }
+.btn-primary { background-color: var(--sun-yellow); color: #111; }
+.btn-primary:not(:disabled):hover { box-shadow: 0 0 20px rgba(255, 199, 0, 0.4); }
+.btn-success { background-color: #22c55e; color: white; }
+.btn-danger { background-color: #ef4444; color: white; }
+.btn-secondary { background-color: #374151; color: white; }
+
+.glassmorphism { background: rgba(10, 10, 10, 0.6); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); border: 1px solid rgba(255, 255, 255, 0.1); }
+
+.form-input, .form-select { background-color: #1a1a1a; border: 1px solid #333; color: #f0f0f0; transition: border-color 0.3s, box-shadow 0.3s; }
+.form-input:focus, .form-select:focus { outline: none; border-color: var(--sun-yellow); box-shadow: 0 0 10px rgba(255, 199, 0, 0.3); }
+.form-input:read-only { background-color: #222; opacity: 0.7; cursor: not-allowed; }
+.form-select option { background-color: #1a1a1a; color: #f0f0f0 !important; }
+
+.shift-card { background-color: #1c1c1c; border-left-width: 4px; transition: transform 0.3s ease, box-shadow 0.3s ease; }
+.shift-card:hover { transform: translateY(-5px); box-shadow: 0 10px 20px rgba(0, 0, 0, 0.2); }
+
+.status-aguardando { border-color: #f59e0b; } .status-confirmada { border-color: #3b82f6; }
+.status-aprovada { border-color: #22c55e; } .status-recusada { border-color: #ef4444; }
+.status-expirada { border-color: #6b7280; }
+
+.blob { position: fixed; border-radius: 50%; mix-blend-mode: screen; filter: blur(70px); z-index: -1; opacity: 0.32; }
+@keyframes pulse-blob { 0%, 100% { transform: scale(1) rotate(0deg); } 50% { transform: scale(1.2) rotate(180deg); } }
+.animate-pulse-blob { animation: pulse-blob 20s infinite ease-in-out; }
+
+.modal-overlay { transition: opacity 0.3s ease; }
+.modal-content { transition: transform 0.3s ease, opacity 0.3s ease; }
+.modal-close { color: #f0f0f0 !important; transition: color 0.2s ease-in-out; }
+.modal-close:hover { color: var(--sun-yellow); }
+.clickable-name { cursor: pointer; text-decoration: underline; text-decoration-color: rgba(255, 199, 0, 0.5); transition: text-decoration-color 0.3s; }
+.clickable-name:hover { text-decoration-color: rgba(255, 199, 0, 1); }
+.verified-badge { color: #1DA1F2; font-size: 0.8em; vertical-align: middle; margin-left: 0.25rem; }
+
+/* Estilos para Notificações */
+.notification-item { transition: background-color 0.2s; }
+.notification-item.unread { background-color: rgba(255, 199, 0, 0.1); }
+.notification-item:not(:last-child) { border-bottom: 1px solid rgba(255, 255, 255, 0.1); }
+
+/* Estilos para Dashboard */
+:root {
+    --color-approved: #22c55e;
+    --color-pending: #f59e0b;
+    --color-rejected: #ef4444;
+    --color-expired: #6b7280;
+}
+.stat-card { border-left-width: 4px; animation: slideUpFadeIn 0.5s ease-out forwards; opacity: 0; }
+.progress-bar-bg { background-color: #374151; border-radius: 9999px; height: 8px; overflow: hidden; }
+.progress-bar-fill { height: 100%; border-radius: 9999px; transition: width 1s ease-out; width: 0%; }
+@keyframes slideUpFadeIn { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+
+/* Estilos para Spinner de Carregamento */
+.btn { position: relative; }
+.btn .spinner {
+    display: none;
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    transform: translate(-50%, -50%);
+    animation: spin 1s linear infinite;
+}
+.btn.loading .spinner { display: inline-block; }
+.btn.loading .btn-text { opacity: 0; }
+@keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+
+/* Estilos para FullCalendar Dark Theme */
+.fc { color: #f0f0f0; }
+.fc .fc-toolbar-title { font-size: 1.5em; }
+.fc .fc-button { background: #374151; border-color: #374151; color: white; }
+.fc .fc-button-primary:not(:disabled):active, .fc .fc-button-primary:not(:disabled).fc-button-active { background-color: var(--sun-yellow); border-color: var(--sun-yellow); color: #111; }
+.fc .fc-daygrid-day.fc-day-today { background: rgba(255, 199, 0, 0.15); }
+.fc-event { font-size: 0.8em !important; }
+
+/* Estilos para a Lista de Usuários */
+.user-list-item {
+    display: flex;
+    align-items: center;
+    padding: 0.75rem;
+    border-radius: 0.5rem;
+    transition: background-color 0.2s ease;
+    cursor: pointer;
+}
+.user-list-item:hover {
+    background-color: rgba(255, 255, 255, 0.05);
+}
+.user-list-item:not(:last-child) {
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+.user-list-avatar {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    object-fit: cover;
+    margin-right: 1rem;
+    border: 2px solid #374151;
+}
+.user-list-role {
+    font-size: 0.75rem;
+    padding: 2px 8px;
+    border-radius: 9999px;
+    font-weight: 600;
+    text-transform: capitalize;
+}
+.role-dono { background-color: #8b5cf6; color: white; }
+.role-supervisor { background-color: #3b82f6; color: white; }
+.role-vigilante { background-color: #6b7280; color: white; }
