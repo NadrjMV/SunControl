@@ -501,12 +501,19 @@ function renderShifts() {
                 'Confirmada - Aguardando Supervisor': { class: 'status-confirmada', text: 'Aguardando Supervisor', icon: 'fa-solid fa-user-check', iconColor: 'text-blue-500' }, 
                 'Aprovada': { class: 'status-aprovada', text: 'Aprovada', icon: 'fa-solid fa-circle-check', iconColor: 'text-green-500' }, 
                 'Recusada': { class: 'status-recusada', text: 'Recusada pelo Colega', icon: 'fa-solid fa-circle-xmark', iconColor: 'text-red-500' }, 
-                'Recusada pelo Supervisor': { class: 'status-recusada', text: 'Recusada pelo Supervisor', icon: 'fa-solid fa-shield-halved', iconColor: 'text-red-600' }, 
+                'Recusada pelo Supervisor': { class: 'status-recusada', text: 'Recusada', icon: 'fa-solid fa-shield-xmark', iconColor: 'text-red-600' }, 
                 'Expirada': { class: 'status-expirada', text: 'Expirada', icon: 'fa-solid fa-calendar-xmark', iconColor: 'text-gray-400' }, 
             };
             
             const currentStatus = getShiftStatus(shift);
-            const statusInfo = statusMap[currentStatus] || { text: currentStatus };
+            const statusInfo = statusMap[currentStatus] || { text: currentStatus, icon: 'fa-solid fa-question-circle', iconColor: 'text-gray-400', class: 'status-expirada' };
+            
+            let displayStatusHTML = statusInfo.text;
+            if (shift.supervisorActionByName && shift.supervisorActionById) {
+                const firstName = shift.supervisorActionByName.split(' ')[0];
+                displayStatusHTML = `${statusInfo.text} por <span class="supervisor-name" data-uid="${shift.supervisorActionById}" style="cursor: pointer;">${firstName}</span>`;
+            }
+
             const card = document.createElement('div');
             card.className = `shift-card p-5 rounded-lg ${statusInfo.class}`;
             card.id = `shift-${shift.id}`;
@@ -535,7 +542,12 @@ function renderShifts() {
                         <p class="text-sm text-gray-400">De: ${formatDateTime(shift.originalDate)} <br> Para: ${formatDateTime(shift.desiredDate)}</p>
                         ${shift.reason ? `<p class="text-sm text-gray-300 mt-2 italic">Motivo: "${shift.reason}"</p>` : ''}
                     </div>
-                    <div class="text-right flex-shrink-0"><span class="flex items-center justify-end text-sm font-semibold"><i class="${statusInfo.icon} ${statusInfo.iconColor} h-4 w-4 mr-2"></i> ${statusInfo.text}</span></div>
+                    <div class="text-right flex-shrink-0">
+                        <span class="flex items-center justify-end text-sm font-semibold">
+                            <i class="${statusInfo.icon} ${statusInfo.iconColor} h-4 w-4 mr-2"></i> 
+                            ${displayStatusHTML}
+                        </span>
+                    </div>
                 </div>
                 ${actionsHtml ? `<div class="mt-4 pt-4 border-t border-gray-700 flex justify-end space-x-3">${actionsHtml}</div>` : ''}
             `;
@@ -719,13 +731,16 @@ async function handleShiftFormSubmit(e) {
 }
 
 function handleShiftListClick(e) {
-    const nameSpan = e.target.closest('.clickable-name');
+    // Adicionada a classe '.supervisor-name' para que o clique seja detectado
+    const nameSpan = e.target.closest('.clickable-name, .supervisor-name');
     const actionButton = e.target.closest('button');
 
     if (nameSpan) {
         const uid = nameSpan.dataset.uid;
         const userToView = allUsers.get(uid);
-        if (userToView) openProfileModal(userToView, uid === currentUserProfile.uid);
+        if (userToView) {
+            openProfileModal(userToView, uid === currentUserProfile.uid);
+        }
         return;
     }
 
@@ -736,7 +751,15 @@ function handleShiftListClick(e) {
         if (!shift) return;
 
         const performUpdate = async (newStatus) => {
-            await updateDoc(doc(db, "shifts", id), { status: newStatus });
+            const updateData = { status: newStatus };
+
+            if (newStatus === 'Aprovada' || newStatus === 'Recusada pelo Supervisor') {
+                updateData.supervisorActionByName = currentUserProfile.name;
+                updateData.supervisorActionById = currentUserProfile.uid;
+                updateData.supervisorActionAt = serverTimestamp();
+            }
+
+            await updateDoc(doc(db, "shifts", id), updateData);
             
             const supervisors = Array.from(allUsers.values()).filter(u => u.role === 'supervisor' || u.role === 'dono' || u.role === 'adm');
             switch (newStatus) {
@@ -977,7 +1000,6 @@ function openDashboardModal() {
     }
 }
 
-
 function openCalendarModal() {
     const modalEl = createAndAppendModal(calendarModalHTML);
     const calendarEl = modalEl.querySelector('#calendar-container');
@@ -1160,7 +1182,12 @@ function formatRelativeTime(timestamp) {
 }
 
 function exportDataAsJson() {
-    const dataToExport = allShifts.map(s => ({...s, createdAt: s.createdAt.toDate()}));
+    const dataToExport = allShifts.map(s => {
+        const newShift = {...s};
+        if (newShift.createdAt?.toDate) newShift.createdAt = newShift.createdAt.toDate();
+        if (newShift.supervisorActionAt?.toDate) newShift.supervisorActionAt = newShift.supervisorActionAt.toDate();
+        return newShift;
+    });
     const jsonContent = JSON.stringify(dataToExport, null, 2);
     const a = document.createElement('a');
     const blob = new Blob([jsonContent], { type: 'application/json' });
