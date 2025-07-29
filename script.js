@@ -3,17 +3,9 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebas
 import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, onAuthStateChanged, signOut, sendPasswordResetEmail } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
 import { getFirestore, collection, addDoc, onSnapshot, doc, updateDoc, query, orderBy, serverTimestamp, getDoc, setDoc, getDocs, where, deleteDoc, writeBatch } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
-const availableRegions = ["Sul", "Norte", "Centro-Oeste", "Sudeste", "Nordeste"];
+import { firebaseConfig } from './firebase-config.js';
 
-// --- FIREBASE CONFIG ---
-const firebaseConfig = {
-    apiKey: "AIzaSyA0UFqsNRUGVwDpYcwduab8WaxoVrMxiBA",
-    authDomain: "suncontrol-d2d94.firebaseapp.com",
-    projectId: "suncontrol-d2d94",
-    storageBucket: "suncontrol-d2d94.appspot.com",
-    messagingSenderId: "434845455719",
-    appId: "1:434845455719:web:06cb665d1274c973f4cbc2"
-};
+const availableRegions = ["Sul", "Norte", "Centro-Oeste", "Sudeste", "Nordeste"];
 
 // --- INITIALIZATION ---
 const app = initializeApp(firebaseConfig);
