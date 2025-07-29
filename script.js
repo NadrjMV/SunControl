@@ -1,16 +1,11 @@
-// --- SDK IMPORTS ---
-import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, onAuthStateChanged, signOut, sendPasswordResetEmail } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-import { getFirestore, collection, addDoc, onSnapshot, doc, updateDoc, query, orderBy, serverTimestamp, getDoc, setDoc, getDocs, where, deleteDoc, writeBatch } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+// script.js
 
-import { firebaseConfig } from './firebase-config.js';
+// --- SDK IMPORTS ---
+import { auth, db } from './firebase-config.js'; 
+import { createUserWithEmailAndPassword, signInWithEmailAndPassword, onAuthStateChanged, signOut, sendPasswordResetEmail } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+import { collection, addDoc, onSnapshot, doc, updateDoc, query, orderBy, serverTimestamp, getDoc, setDoc, getDocs, where, deleteDoc, writeBatch } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
 const availableRegions = ["Sul", "Norte", "Centro-Oeste", "Sudeste", "Nordeste"];
-
-// --- INITIALIZATION ---
-const app = initializeApp(firebaseConfig);
-const db = getFirestore(app);
-const auth = getAuth(app);
 
 // --- DOM ELEMENTS ---
 const authContainer = document.getElementById('auth-container');
@@ -380,14 +375,14 @@ async function initializeAppUI() {
     const donoActions = document.getElementById('dono-actions');
     const dashboardStats = document.getElementById('dashboard-stats');
 
-    if (role === 'supervisor' || role === 'dono') {
+    if (role === 'supervisor' || role === 'dono' || role === 'adm') {
         formSection.innerHTML = '';
         formSection.style.display = 'none';
         shiftListContainer.classList.remove('lg:col-span-2');
         shiftListContainer.classList.add('lg:col-span-3');
         supervisorActions.classList.remove('hidden');
         dashboardStats.classList.remove('hidden');
-        donoActions.classList.toggle('hidden', role !== 'dono');
+        donoActions.classList.toggle('hidden', role !== 'dono' && role !== 'adm');
     } else {
         formSection.innerHTML = shiftFormHTML;
         formSection.style.display = 'block';
@@ -481,11 +476,11 @@ function renderShifts() {
     shiftList.innerHTML = '';
     
     const isSupervisor = currentUserProfile.role === 'supervisor';
-    const isDono = currentUserProfile.role === 'dono';
+    const isDonoOrAdm = currentUserProfile.role === 'dono' || currentUserProfile.role === 'adm';
     const currentUserRegion = normalizeRegion(currentUserProfile.regional);
 
     let visibleShifts = [];
-    if (isDono) {
+    if (isDonoOrAdm) {
         visibleShifts = allShifts;
     } else if (isSupervisor) {
         if (currentUserRegion) {
@@ -503,15 +498,15 @@ function renderShifts() {
         visibleShifts.forEach(shift => {
             const statusMap = { 
                 'Aguardando Confirmação': { class: 'status-aguardando', text: 'Aguardando Confirmação', icon: 'fa-solid fa-clock', iconColor: 'text-yellow-500' }, 
-                'Confirmada - Aguardando Supervisor': { class: 'status-confirmada', text: 'Aguardando Supervisor', icon: 'fa-solid fa-user-check', iconColor: 'text-yellow-500' }, 
+                'Confirmada - Aguardando Supervisor': { class: 'status-confirmada', text: 'Aguardando Supervisor', icon: 'fa-solid fa-user-check', iconColor: 'text-blue-500' }, 
                 'Aprovada': { class: 'status-aprovada', text: 'Aprovada', icon: 'fa-solid fa-circle-check', iconColor: 'text-green-500' }, 
                 'Recusada': { class: 'status-recusada', text: 'Recusada pelo Colega', icon: 'fa-solid fa-circle-xmark', iconColor: 'text-red-500' }, 
-                'Recusada pelo Supervisor': { class: 'status-recusada', text: 'Recusada pelo Supervisor', icon: 'fa-solid fa-shield-xmark', iconColor: 'text-yellow-600' }, 
+                'Recusada pelo Supervisor': { class: 'status-recusada', text: 'Recusada pelo Supervisor', icon: 'fa-solid fa-shield-halved', iconColor: 'text-red-600' }, 
                 'Expirada': { class: 'status-expirada', text: 'Expirada', icon: 'fa-solid fa-calendar-xmark', iconColor: 'text-gray-400' }, 
             };
             
             const currentStatus = getShiftStatus(shift);
-            const statusInfo = statusMap[currentStatus];
+            const statusInfo = statusMap[currentStatus] || { text: currentStatus };
             const card = document.createElement('div');
             card.className = `shift-card p-5 rounded-lg ${statusInfo.class}`;
             card.id = `shift-${shift.id}`;
@@ -520,10 +515,10 @@ function renderShifts() {
             if (currentUserProfile.uid === shift.colleagueUid && currentStatus === 'Aguardando Confirmação') {
                 actionsHtml = `<button data-id="${shift.id}" data-action="accept" class="btn btn-success text-xs font-bold py-2 px-4 rounded-full">Aceitar</button> <button data-id="${shift.id}" data-action="reject" class="btn btn-danger text-xs font-bold py-2 px-4 rounded-full">Recusar</button>`;
             }
-            if ((isSupervisor || isDono) && currentStatus === 'Confirmada - Aguardando Supervisor') {
+            if ((isSupervisor || isDonoOrAdm) && currentStatus === 'Confirmada - Aguardando Supervisor') {
                  actionsHtml = `<button data-id="${shift.id}" data-action="approve" class="btn btn-success text-xs font-bold py-2 px-4 rounded-full">Aprovar</button> <button data-id="${shift.id}" data-action="decline" class="btn btn-danger text-xs font-bold py-2 px-4 rounded-full">Recusar</button>`;
             }
-            if (isDono) {
+            if (isDonoOrAdm) {
                 actionsHtml += `<button data-id="${shift.id}" data-action="delete-shift" class="btn btn-danger text-xs font-bold py-2 px-4 rounded-full ml-2">
                     <i class="fa-solid fa-trash-can"></i>
                 </button>`;
@@ -551,17 +546,18 @@ function renderShifts() {
 }
 
 function updateDashboardStats() {
-    if (!currentUserProfile || (currentUserProfile.role !== 'supervisor' && currentUserProfile.role !== 'dono')) {
+    const role = currentUserProfile.role;
+    if (!currentUserProfile || (role !== 'supervisor' && role !== 'dono' && role !== 'adm')) {
         document.getElementById('dashboard-stats').classList.add('hidden');
         return;
     }
     document.getElementById('dashboard-stats').classList.remove('hidden');
 
-    const isDono = currentUserProfile.role === 'dono';
+    const isDonoOrAdm = role === 'dono' || role === 'adm';
     const currentUserRegion = normalizeRegion(currentUserProfile.regional);
     
     let shiftsToCount = [];
-    if (isDono) {
+    if (isDonoOrAdm) {
         shiftsToCount = allShifts;
     } else if (currentUserProfile.role === 'supervisor' && currentUserRegion) {
         shiftsToCount = allShifts.filter(s => normalizeRegion(s.regional) === currentUserRegion);
@@ -588,7 +584,7 @@ function updateDashboardStats() {
     document.getElementById('count-expired').textContent = counts.expired;
 
     const exportContainer = document.getElementById('export-container');
-    if (currentUserProfile && currentUserProfile.role === 'dono') {
+    if (currentUserProfile && (role === 'dono' || role === 'adm')) {
         exportContainer.innerHTML = `
             <button id="delete-all-shifts-btn" class="btn btn-danger text-xs font-semibold py-2 px-3 rounded-full">Excluir Todas</button>
             <button id="export-json" class="btn btn-secondary text-xs font-semibold py-2 px-3 rounded-full">Exportar JSON</button>
@@ -597,7 +593,7 @@ function updateDashboardStats() {
         document.getElementById('delete-all-shifts-btn').addEventListener('click', () => {
             showActionModal('Excluir Todas as Trocas', 'Tem certeza que deseja EXCLUIR TODAS as trocas? Esta ação é irreversível.', 'btn-danger', deleteAllShifts);
         });
-    } else if (currentUserProfile && currentUserProfile.role === 'supervisor') {
+    } else if (currentUserProfile && role === 'supervisor') {
         exportContainer.innerHTML = `<button id="export-json" class="btn btn-secondary text-xs font-semibold py-2 px-3 rounded-full">Exportar JSON</button>`;
         document.getElementById('export-json').addEventListener('click', exportDataAsJson);
     } else {
@@ -742,12 +738,12 @@ function handleShiftListClick(e) {
         const performUpdate = async (newStatus) => {
             await updateDoc(doc(db, "shifts", id), { status: newStatus });
             
-            const supervisors = Array.from(allUsers.values()).filter(u => u.role === 'supervisor' || u.role === 'dono');
+            const supervisors = Array.from(allUsers.values()).filter(u => u.role === 'supervisor' || u.role === 'dono' || u.role === 'adm');
             switch (newStatus) {
                 case 'Confirmada - Aguardando Supervisor':
                     await createNotification(shift.requesterUid, `${shift.colleague} aceitou sua solicitação de troca.`, shift.id);
                     supervisors.forEach(sup => {
-                        if (normalizeRegion(sup.regional) === normalizeRegion(shift.regional)) {
+                        if (normalizeRegion(sup.regional) === normalizeRegion(shift.regional) || sup.role === 'dono' || sup.role === 'adm') {
                             createNotification(sup.id, `A troca entre ${shift.requester} e ${shift.colleague} aguarda aprovação.`, shift.id)
                         }
                     });
@@ -779,7 +775,7 @@ function handleShiftListClick(e) {
     }
 }
 
-function handleColleagueSelectChange() {
+function handleColleaguesSelectChange() {
     const colleagueSelect = document.getElementById('colleagueName');
     const previewContainer = document.getElementById('selected-colleague-preview');
     
@@ -810,7 +806,6 @@ function handleColleagueSelectChange() {
     }
 }
 
-
 function setupEventListeners() {
     document.getElementById('logout-btn')?.addEventListener('click', handleLogout);
     document.getElementById('profile-area')?.addEventListener('click', handleProfileClick);
@@ -825,7 +820,7 @@ function setupEventListeners() {
         const shiftFormInner = shiftFormContainer.querySelector('#shift-form-inner');
         const colleagueNameSelect = document.getElementById('colleagueName');
         shiftFormInner?.addEventListener('submit', handleShiftFormSubmit);
-        colleagueNameSelect?.addEventListener('change', handleColleagueSelectChange);
+        colleagueNameSelect?.addEventListener('change', handleColleaguesSelectChange);
     }
 }
 
@@ -875,12 +870,12 @@ async function saveProfileData(e, modalEl) {
 function openDashboardModal() {
     if (!currentUserProfile) return;
 
-    const isDono = currentUserProfile.role === 'dono';
+    const isDonoOrAdm = currentUserProfile.role === 'dono' || currentUserProfile.role === 'adm';
     const currentUserRegion = normalizeRegion(currentUserProfile.regional);
-    const regionalTitle = isDono ? 'Todas as Regionais' : (currentUserProfile.regional || 'Sem Regional Definida');
+    const regionalTitle = isDonoOrAdm ? 'Todas as Regionais' : (currentUserProfile.regional || 'Sem Regional Definida');
     
     let shiftsToAnalyze = [];
-    if (isDono) {
+    if (isDonoOrAdm) {
         shiftsToAnalyze = allShifts;
     } else if (currentUserProfile.role === 'supervisor' && currentUserRegion) {
         shiftsToAnalyze = allShifts.filter(s => normalizeRegion(s.regional) === currentUserRegion);
@@ -1097,14 +1092,22 @@ async function markAllNotificationsAsRead() {
     await batch.commit();
 }
 
-function createAndAppendModal(innerHTML) {
+function createAndAppendModal(innerHTML, targetContainer = modalContainer) {
     const tempDiv = document.createElement('div');
     tempDiv.innerHTML = innerHTML.trim();
     const modalEl = tempDiv.firstElementChild;
     if (!modalEl) return null;
-    modalContainer.appendChild(modalEl);
-    modalEl.querySelectorAll('.modal-close').forEach(btn => btn.addEventListener('click', () => hideModalContainer(modalEl)));
-    modalEl.addEventListener('click', (e) => { if (e.target === modalEl) hideModalContainer(modalEl); });
+    
+    targetContainer.innerHTML = '';
+    targetContainer.appendChild(modalEl);
+
+    const closeModal = () => {
+        hideModalContainer(modalEl, targetContainer);
+    };
+
+    modalEl.querySelectorAll('.modal-close').forEach(btn => btn.addEventListener('click', closeModal));
+    modalEl.addEventListener('click', (e) => { if (e.target === modalEl) closeModal(); });
+    
     showModalContainer(modalEl);
     return modalEl;
 }
@@ -1112,7 +1115,10 @@ function createAndAppendModal(innerHTML) {
 function showActionModal(title, message, confirmClass, onConfirm) {
     const modalEl = createAndAppendModal(confirmationModalHTML(title, message, confirmClass));
     if (!modalEl) return;
-    modalEl.querySelector('#modalConfirm').addEventListener('click', () => { onConfirm(); hideModalContainer(modalEl); });
+    modalEl.querySelector('#modalConfirm').addEventListener('click', () => { 
+        onConfirm(); 
+        hideModalContainer(modalEl); 
+    });
 }
 
 function showModalContainer(modalEl) {
@@ -1124,12 +1130,12 @@ function showModalContainer(modalEl) {
     }, 10);
 }
 
-function hideModalContainer(modalEl) {
+function hideModalContainer(modalEl, targetContainer = modalContainer) {
     if (!modalEl) return;
     modalEl.classList.add('opacity-0');
     const content = modalEl.querySelector('.modal-content');
     content?.classList.add('scale-95', 'opacity-0');
-    setTimeout(() => { if(modalContainer.contains(modalEl)) modalContainer.removeChild(modalEl); }, 300);
+    setTimeout(() => { if(targetContainer.contains(modalEl)) targetContainer.innerHTML = ''; }, 300);
 }
 
 function formatDateTime(dateTimeString) {
@@ -1184,5 +1190,4 @@ async function deleteAllShifts() {
     }
 }
 
-// --- START THE APP ---
 document.addEventListener('DOMContentLoaded', initializeAuth);
