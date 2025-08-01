@@ -5,7 +5,7 @@ import { auth, db } from './firebase-config.js';
 import { createUserWithEmailAndPassword, signInWithEmailAndPassword, onAuthStateChanged, signOut, sendPasswordResetEmail } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
 import { collection, addDoc, onSnapshot, doc, updateDoc, query, orderBy, serverTimestamp, getDoc, setDoc, getDocs, where, deleteDoc, writeBatch } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
-const availableRegions = ["Sul", "Norte", "Centro-Oeste", "Sudeste", "Nordeste"];
+const availableRegions = ["Sul", "Norte", "Centro-Oeste", "Sudeste", "Nordeste", "Monitoramento"];
 
 // --- DOM ELEMENTS ---
 const authContainer = document.getElementById('auth-container');
@@ -115,8 +115,7 @@ const profileModalHTML = (user, isOwnProfile) => {
                     </div>
                 </div>
                 <div><label class="text-sm font-medium text-gray-300">Posto de Trabalho</label><input type="text" id="profile-posto" value="${user.posto || ''}" placeholder="Ex: Portaria Principal" class="form-input w-full p-3 rounded-lg mt-1"></div>
-                <div><label class="text-sm font-medium text-gray-300">Cidade</label><input type="text" id="profile-cidade" value="${user.cidade || ''}" placeholder="Ex: São Paulo" class="form-input w-full p-3 rounded-lg mt-1" readonly></div>
-                <div><label class="text-sm font-medium text-gray-300">Regional</label><input type="text" id="profile-regional" value="${user.regional || ''}" placeholder="Ex: Regional Sul" class="form-input w-full p-3 rounded-lg mt-1" readonly></div>
+                <div><label class="text-sm font-medium text-gray-300">Cidade</label><input type="text" id="profile-cidade" value="${user.cidade || ''}" placeholder="Ex: São Paulo" class="form-input w-full p-3 rounded-lg mt-1"></div>                <div><label class="text-sm font-medium text-gray-300">Regional</label><input type="text" id="profile-regional" value="${user.regional || ''}" placeholder="Ex: Regional Sul" class="form-input w-full p-3 rounded-lg mt-1" readonly></div>
                  <details class="pt-2">
                     <summary class="text-sm text-gray-400 cursor-pointer hover:text-white">Como adicionar minha foto de perfil?</summary>
                     <p class="text-xs text-gray-500 mt-2 p-3 bg-black/20 rounded-lg">Para adicionar uma foto, você precisa hospedá-la em um site (como <a href="https://imgur.com/upload" target="_blank" class="underline">Imgur</a>). Após o upload, clique com o botão direito na imagem, selecione "Copiar endereço da imagem" e cole o link no campo acima.</p>
@@ -1217,4 +1216,4 @@ async function deleteAllShifts() {
     }
 }
 
-document.addEventListener('DOMContentLoaded', initializeAuth);
+document.addEventListener('DOMContentLoaded', initializeAuth)
