@@ -1,5 +1,3 @@
-// script.js
-
 // --- SDK IMPORTS ---
 import { auth, db } from './firebase-config.js'; 
 import { createUserWithEmailAndPassword, signInWithEmailAndPassword, onAuthStateChanged, signOut, sendPasswordResetEmail } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
@@ -635,20 +633,43 @@ async function handleLogout() {
 function handleProfileClick() { openProfileModal(currentUserProfile, true); }
 function handleOpenDashboard() { openDashboardModal(); }
 function handleOpenCalendar() { openCalendarModal(); }
+
 function handleManageUsers() {
     const modalEl = createAndAppendModal(userListModalHTML());
     const userListContainer = modalEl.querySelector('#user-list-items');
     const searchInput = modalEl.querySelector('#user-search-input');
-    
+
     const renderList = (filter = '') => {
         userListContainer.innerHTML = '';
         const filterText = filter.toLowerCase();
         const usersArray = Array.from(allUsers.values());
 
+        // prioridades (quanto maior o número, menor a prioridade)
+        const rolePriority = {
+            'dono': 1,
+            'adm': 1,
+            'supervisor': 1,
+            'vigilante': 2
+        };
+
         usersArray
+            .sort((a, b) => {
+                const priorityA = rolePriority[a.role] || 99;
+                const priorityB = rolePriority[b.role] || 99;
+
+                if (priorityA !== priorityB) {
+                    return priorityA - priorityB;
+                }
+                return a.name.localeCompare(b.name); // Prioridade igual, mostra em ordem alfabética
+            })
             .filter(user => user.name.toLowerCase().includes(filterText) || user.email.toLowerCase().includes(filterText))
             .forEach(user => {
                 const photo = user.photoURL || `https://placehold.co/40x40/1a1a1a/f0f0f0?text=${user.name.charAt(0)}`;
+                
+                // Faz 'dono' mostrar como 'admin'
+                const displayRole = (user.role === 'dono' || user.role === 'adm') ? 'admin' : user.role;
+                const roleClass = (user.role === 'dono' || user.role === 'adm' || user.role === 'adm') ? 'role-adm' : `role-${user.role}`;
+
                 const userItem = document.createElement('div');
                 userItem.className = 'user-list-item';
                 userItem.dataset.uid = user.id;
@@ -658,7 +679,7 @@ function handleManageUsers() {
                         <p class="font-bold text-white">${user.name}</p>
                         <p class="text-sm text-gray-400">${user.email}</p>
                     </div>
-                    <span class="user-list-role role-${user.role}">${user.role}</span>
+                    <span class="user-list-role ${roleClass}">${displayRole}</span>
                 `;
                 userListContainer.appendChild(userItem);
             });
@@ -682,6 +703,7 @@ function handleManageUsers() {
         }
     });
 }
+
 function handleOpenNotifications() { openNotificationsModal(); }
 
 async function handleShiftFormSubmit(e) {
@@ -1216,4 +1238,4 @@ async function deleteAllShifts() {
     }
 }
 
-document.addEventListener('DOMContentLoaded', initializeAuth)
+document.addEventListener('DOMContentLoaded', initializeAuth);
