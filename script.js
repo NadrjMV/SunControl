@@ -1,3 +1,5 @@
+// script.js
+
 // --- SDK IMPORTS ---
 import { auth, db } from './firebase-config.js'; 
 import { createUserWithEmailAndPassword, signInWithEmailAndPassword, onAuthStateChanged, signOut, sendPasswordResetEmail } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
@@ -87,7 +89,31 @@ const profileModalHTML = (user, isOwnProfile) => {
     const posto = user.posto || 'Não informado';
     const cidade = user.cidade || 'Não informada';
     const regional = user.regional || 'Não informada';
-    
+
+    let regionalFieldHTML = '';
+    const needsRegionalUpdate = (!user.regional || user.regional === 'Nenhuma Regional' || user.regional === 'Não informada');
+
+    if (isOwnProfile && needsRegionalUpdate) {
+        const optionsHTML = availableRegions.sort().map(region => `<option value="${region}">${region}</option>`).join('');
+        regionalFieldHTML = `
+            <div>
+                <label class="text-sm font-medium text-gray-300">Sua Regional <span class="text-red-400 font-semibold">*Obrigatório</span></label>
+                <p class="text-xs text-gray-400 mb-2">Por favor, selecione a sua regional correta. Esta ação só pode ser feita uma vez.</p>
+                <select id="profile-regional" required class="form-select w-full p-3 rounded-lg mt-1">
+                    <option value="" disabled selected>Selecione uma Regional</option>
+                    ${optionsHTML}
+                </select>
+            </div>
+        `;
+    } else {
+        regionalFieldHTML = `
+            <div>
+                <label class="text-sm font-medium text-gray-300">Regional</label>
+                <input type="text" value="${regional}" class="form-input w-full p-3 rounded-lg mt-1" readonly>
+            </div>
+        `;
+    }
+
     return `
     <div class="modal-overlay fixed inset-0 bg-black bg-opacity-70 z-[100] flex items-center justify-center p-4 opacity-0">
         <div class="modal-content glassmorphism rounded-2xl p-8 max-w-lg w-full shadow-lg scale-95 opacity-0">
@@ -113,7 +139,8 @@ const profileModalHTML = (user, isOwnProfile) => {
                     </div>
                 </div>
                 <div><label class="text-sm font-medium text-gray-300">Posto de Trabalho</label><input type="text" id="profile-posto" value="${user.posto || ''}" placeholder="Ex: Portaria Principal" class="form-input w-full p-3 rounded-lg mt-1"></div>
-                <div><label class="text-sm font-medium text-gray-300">Cidade</label><input type="text" id="profile-cidade" value="${user.cidade || ''}" placeholder="Ex: São Paulo" class="form-input w-full p-3 rounded-lg mt-1"></div>                <div><label class="text-sm font-medium text-gray-300">Regional</label><input type="text" id="profile-regional" value="${user.regional || ''}" placeholder="Ex: Regional Sul" class="form-input w-full p-3 rounded-lg mt-1" readonly></div>
+                <div><label class="text-sm font-medium text-gray-300">Cidade</label><input type="text" id="profile-cidade" value="${user.cidade || ''}" placeholder="Ex: São Paulo" class="form-input w-full p-3 rounded-lg mt-1"></div>
+                ${regionalFieldHTML}
                  <details class="pt-2">
                     <summary class="text-sm text-gray-400 cursor-pointer hover:text-white">Como adicionar minha foto de perfil?</summary>
                     <p class="text-xs text-gray-500 mt-2 p-3 bg-black/20 rounded-lg">Para adicionar uma foto, você precisa hospedá-la em um site (como <a href="https://imgur.com/upload" target="_blank" class="underline">Imgur</a>). Após o upload, clique com o botão direito na imagem, selecione "Copiar endereço da imagem" e cole o link no campo acima.</p>
@@ -361,10 +388,39 @@ async function initializeAppUI() {
         return;
     }
     
-    const { name, role, photoURL } = currentUserProfile;
+    const { name, role, photoURL, regional } = currentUserProfile;
     document.getElementById('user-greeting').textContent = `Olá, ${name.split(' ')[0]}`;
     document.getElementById('user-role').textContent = role;
     document.getElementById('profile-pic-header').src = photoURL || `https://placehold.co/40x40/1a1a1a/f0f0f0?text=${name.charAt(0)}`;
+
+    const existingNotice = document.getElementById('regional-update-notice');
+    if (existingNotice) {
+        existingNotice.remove();
+    }
+
+    if (!regional || regional === 'Nenhuma Regional') {
+        const notificationBanner = document.createElement('div');
+        notificationBanner.id = 'regional-update-notice';
+        notificationBanner.className = 'container mx-auto px-6 md:px-12 mb-6';
+        notificationBanner.innerHTML = `
+            <div class="glassmorphism p-4 rounded-lg border-l-4 border-[var(--sun-yellow)] flex items-center justify-between gap-4">
+                <p class="text-white">
+                    Devido à um pequeno erro, você ficou sem uma regional definida, por favor, entre no perfil e selecione novamente sua regional CORRETA.
+                </p>
+                <button id="go-to-profile-btn" class="btn btn-primary text-sm font-semibold py-2 px-4 rounded-full ml-4 whitespace-nowrap">Atualizar Perfil</button>
+            </div>
+        `;
+
+        const mainContent = document.getElementById('main-content-grid');
+        if (mainContent) {
+            mainContent.parentNode.insertBefore(notificationBanner, mainContent);
+        }
+
+        document.getElementById('go-to-profile-btn').addEventListener('click', (e) => {
+            e.preventDefault();
+            handleProfileClick();
+        });
+    }
 
     const formSection = document.getElementById('form-section');
     const shiftListContainer = document.getElementById('shift-list-container');
@@ -892,13 +948,27 @@ async function saveProfileData(e, modalEl) {
     const saveBtn = document.getElementById('save-profile-btn');
     toggleButtonLoading(saveBtn, true);
 
-    const photoURL = document.getElementById('profile-photo-url').value;
-    const posto = document.getElementById('profile-posto').value;
-    
-    if (!currentUserProfile || !currentUserProfile.uid) return;
-    
-    const dataToUpdate = { photoURL, posto };
-    
+    if (!currentUserProfile || !currentUserProfile.uid) {
+        toggleButtonLoading(saveBtn, false);
+        return;
+    }
+
+    const dataToUpdate = {
+        photoURL: document.getElementById('profile-photo-url').value,
+        posto: document.getElementById('profile-posto').value,
+        cidade: document.getElementById('profile-cidade').value,
+    };
+
+    const regionalInput = document.getElementById('profile-regional');
+    if (regionalInput && regionalInput.tagName === 'SELECT') {
+        if (!regionalInput.value) {
+            alert('Erro: O campo "Regional" é obrigatório.');
+            toggleButtonLoading(saveBtn, false);
+            return;
+        }
+        dataToUpdate.regional = regionalInput.value;
+    }
+
     const userDocRef = doc(db, "users", currentUserProfile.uid);
     try {
         await updateDoc(userDocRef, dataToUpdate);
