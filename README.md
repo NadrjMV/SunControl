@@ -11,7 +11,7 @@
 <p align="center">
   <img src="https://img.shields.io/badge/Status-Ativo-brightgreen?style=for-the-badge" alt="Status do Projeto">
   <img src="https://img.shields.io/badge/Licen%C3%A7a-MIT-blue?style=for-the-badge" alt="Licença">
-  <img src="https://img.shields.io/badge/Feito%20com-Firebase-orange?style=for-the-badge" alt="Feito com Firebase">
+  <img src="https://img.shields.io/badge/Backend-Firebase-orange?style=for-the-badge" alt="Backend com Firebase">
 </p>
 
 <br>
