@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SunControl | Gestão Integrada</title>
+    
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+    <link rel="stylesheet" href="https://npmcdn.com/flatpickr/dist/themes/dark.css">
+    <script src='https://cdn.jsdelivr.net/npm/fullcalendar@6.1.14/index.global.min.js'></script>
+    
+    <link rel="icon" type="image/png" href="images/SunControl.png">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" integrity="sha512-SnH5WK+bZxgPHs44uWIX+LLJAJ9/2PkPKZ5QiAj6Ta86w+fsb2TkcmfRyVX3pBnMFcV7oQPJkl9QevSCWr3W6A==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+
+    <link rel="stylesheet" href="style.css">
+</head>
+<body class="antialiased">
+    <div class="blob bg-yellow-400 w-96 h-96 top-10 left-10 animate-pulse-blob"></div>
+    <div class="blob bg-blue-500 w-96 h-96 bottom-10 right-10 animate-pulse-blob" style="animation-delay: 7s;"></div>
+
+    <div id="auth-container" class="min-h-screen flex items-center justify-center p-4">
+        <div class="w-full max-w-md">
+            <div id="login-view">
+                <div class="glassmorphism p-8 rounded-2xl">
+                    <h2 class="text-3xl font-bold text-center text-white mb-2">Bem-vindo ao <span class="text-blue-500">SunControl</span></h2>
+                    <p class="text-center text-gray-400 mb-8">Acesse para gerenciar os plantões.</p>
+                    <form id="login-form" class="space-y-4">
+                        <input type="email" id="login-email" placeholder="Email" required class="form-input w-full p-3 rounded-lg" autocomplete="email">
+                        <input type="password" id="login-password" placeholder="Senha" required class="form-input w-full p-3 rounded-lg" autocomplete="current-password">
+                        <div class="text-center">
+                            <a href="#" id="forgot-password" class="text-sm text-gray-400 hover:text-[var(--sun-yellow)] hover:underline">Esqueci minha senha</a>
+                        </div>
+                        <button type="submit" class="btn btn-primary w-full font-bold py-3 rounded-full text-base !mt-6">Entrar</button>
+                    </form>
+                    <p id="login-error" class="text-red-500 text-sm mt-4 text-center h-4"></p>
+                    <p class="text-center text-sm text-gray-400 mt-6">Não tem uma conta? <a href="#" id="show-register" class="font-semibold text-[var(--sun-yellow)] hover:underline">Cadastre-se</a></p>
+                </div>
+            </div>
+            <div id="register-view" class="hidden">
+                 <div class="glassmorphism p-8 rounded-2xl">
+                    <h2 class="text-3xl font-bold text-center text-white mb-2">Crie sua Conta</h2>
+                    <p class="text-center text-gray-400 mb-8">O acesso será validado por um supervisor.</p>
+                    <form id="register-form" class="space-y-4">
+                        <input type="text" id="register-name" placeholder="Nome Completo" required class="form-input w-full p-3 rounded-lg" autocomplete="name">
+                        <input type="email" id="register-email" placeholder="Email" required class="form-input w-full p-3 rounded-lg" autocomplete="email">
+                        <select id="register-regional" required class="form-select w-full p-3 rounded-lg">
+                            <option value="" disabled selected>Selecione sua Regional</option>
+                        </select>
+                        <input type="password" id="register-password" placeholder="Senha (mínimo 6 caracteres)" required class="form-input w-full p-3 rounded-lg" autocomplete="new-password">
+                        <input type="password" id="register-confirm-password" placeholder="Confirmar Senha" required class="form-input w-full p-3 rounded-lg" autocomplete="new-password">
+                        <button type="submit" class="btn btn-primary w-full font-bold py-3 rounded-full text-base">Cadastrar</button>
+                    </form>
+                    <p id="register-error" class="text-red-500 text-sm mt-4 text-center h-4"></p>
+                    <p class="text-center text-sm text-gray-400 mt-6">Já tem uma conta? <a href="#" id="show-login" class="font-semibold text-[var(--sun-yellow)] hover:underline">Faça Login</a></p>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div id="app-container" class="hidden">
+        <header class="fixed top-0 left-0 w-full z-50 py-3 px-6 md:px-12 glassmorphism">
+            <div class="container mx-auto flex justify-between items-center">
+                <div class="flex items-center space-x-3">
+                    <i class="fa-solid fa-shield-halved text-[var(--sun-yellow)]"></i>
+                    <h1 class="text-xl font-bold text-white">SunControl</h1>
+                </div>
+                <div class="flex items-center space-x-2 md:space-x-4">
+                     
+                     <a href="https://nadrjmv.github.io/SunTalk/" target="_blank" class="btn btn-secondary text-xs font-semibold py-2 px-3 rounded-full flex items-center gap-2">
+                        <i class="fa-solid fa-newspaper"></i> <span class="hidden md:inline">Mural</span>
+                     </a>
+                     
+                     <button id="open-calendar-btn" class="btn btn-secondary text-xs font-semibold py-2 px-3 rounded-full flex items-center gap-2">
+                        <i class="fa-solid fa-calendar-days"></i> <span class="hidden md:inline">Calendário</span>
+                     </button>
+
+                     <div id="supervisor-actions" class="hidden">
+                         <button id="open-dashboard-btn" class="btn btn-secondary text-xs font-semibold py-2 px-3 rounded-full flex items-center gap-2">
+                             <i class="fa-solid fa-table-columns"></i> <span class="hidden md:inline">Dashboard</span>
+                         </button>
+                     </div>
+                     <div id="dono-actions" class="hidden">
+                         <button id="manage-users-btn" class="btn btn-secondary text-xs font-semibold py-2 px-3 rounded-full flex items-center gap-2">
+                             <i class="fa-solid fa-users-gear"></i> <span class="hidden md:inline">Usuários</span>
+                         </button>
+                     </div>
+                    
+                     <div id="notification-bell" class="relative cursor-pointer p-2 rounded-full hover:bg-white/10 transition-colors">
+                        <i class="fa-solid fa-bell text-white text-lg"></i>
+                        <span id="notification-badge" class="hidden absolute top-0 right-0 bg-red-500 text-white text-xs w-4 h-4 rounded-full flex items-center justify-center font-bold"></span>
+                     </div>
+                     <div id="profile-area" class="flex items-center space-x-3 cursor-pointer p-2 rounded-lg hover:bg-white/10 transition-colors">
+                         <img id="profile-pic-header" src="https://placehold.co/40x40/1a1a1a/f0f0f0?text=S" class="w-8 h-8 rounded-full object-cover border-2 border-gray-600">
+                         <div class="text-right">
+                             <span id="user-greeting" class="text-sm font-semibold text-white block"></span>
+                             <span id="user-role" class="text-xs text-[var(--sun-yellow)] block capitalize"></span>
+                         </div>
+                     </div>
+                     <button id="logout-btn" class="btn btn-danger text-xs font-semibold py-2 px-3 rounded-full">Sair</button>
+                </div>
+            </div>
+        </header>
+
+        <main class="pt-24 pb-12 relative z-10">
+            <section id="dashboard-stats" class="container mx-auto px-6 md:px-12 mb-12 hidden"></section>
+            <div id="main-content-grid" class="container mx-auto px-6 md:px-12 grid lg:grid-cols-3 gap-8">
+                <div id="form-section" class="lg:col-span-1"></div>
+                <div id="shift-list-container" class="lg:col-span-2">
+                    <div class="flex justify-between items-center mb-6">
+                        <h3 class="text-2xl font-bold">Histórico de Trocas</h3>
+                        <div id="export-container" class="flex space-x-3"></div>
+                    </div>
+                    <div id="shift-list" class="space-y-4"></div>
+                </div>
+            </div>
+        </main>
+        <footer class="py-6 px-6 md:px-12 text-center text-gray-400 text-sm">
+            Desenvolvido por <a href="https://www.linkedin.com/in/jordan-luiz-3ab157363?utm_source=share&utm_campaign=share_via&utm_content=profile&utm_medium=ios_app" target="_blank" class="font-bold text-white hover:underline whitespace-nowrap">@jordanlvs <i class="fa-solid fa-circle-check verified-badge"></i></a> (Proprietário da <a href="https://www.instagram.com/weblv.dev/" target="_blank" class="font-bold text-white hover:underline">WebLv)</a>        
+        </footer>
+    </div>
+    
+    <div id="modal-container"></div>
+
+    <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+    <script src="https://npmcdn.com/flatpickr/dist/l10n/pt.js"></script>
+
+    <script type="module" src="firebase-config.js"></script>
+    <script type="module" src="script.js"></script>
+</body>
+</html>
