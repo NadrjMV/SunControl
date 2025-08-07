@@ -48,6 +48,49 @@ function toggleButtonLoading(button, isLoading) {
     }
 }
 
+function processAndResizeImage(file, maxWidth, maxHeight, quality = 0.7) {
+    return new Promise((resolve, reject) => {
+        if (!file.type.startsWith('image/')) {
+            reject(new Error('O arquivo não é uma imagem.'));
+            return;
+        }
+
+        const reader = new FileReader();
+        reader.readAsDataURL(file);
+        
+        reader.onload = (event) => {
+            const img = new Image();
+            img.src = event.target.result;
+
+            img.onload = () => {
+                const canvas = document.createElement('canvas');
+                let { width, height } = img;
+
+                if (width > height) {
+                    if (width > maxWidth) {
+                        height = Math.round((height * maxWidth) / width);
+                        width = maxWidth;
+                    }
+                } else {
+                    if (height > maxHeight) {
+                        width = Math.round((width * maxHeight) / height);
+                        height = maxHeight;
+                    }
+                }
+
+                canvas.width = width;
+                canvas.height = height;
+                const ctx = canvas.getContext('2d');
+                ctx.drawImage(img, 0, 0, width, height);
+
+                resolve(canvas.toDataURL('image/jpeg', quality));
+            };
+            img.onerror = (error) => reject(error);
+        };
+        reader.onerror = (error) => reject(error);
+    });
+}
+
 // --- TEMPLATES HTML ---
 const confirmationModalHTML = (title, message, confirmClass) => `
     <div class="modal-overlay fixed inset-0 bg-black bg-opacity-70 z-[100] flex items-center justify-center p-4 opacity-0">
@@ -132,19 +175,19 @@ const profileModalHTML = (user, isOwnProfile) => {
             </div>
             <form id="profile-edit-mode" class="hidden space-y-4">
                 <div class="flex items-center space-x-4">
-                    <img src="${photo}" id="edit-profile-pic-preview" class="w-20 h-20 rounded-full object-cover border-2 border-[var(--sun-yellow)]">
+                    <label for="profile-photo-upload" class="cursor-pointer">
+                        <img src="${photo}" id="edit-profile-pic-preview" class="w-20 h-20 rounded-full object-cover border-2 border-[var(--sun-yellow)] hover:opacity-80 transition-opacity">
+                    </label>
                     <div class="flex-grow">
-                        <label class="text-sm font-medium text-gray-300">URL da Foto de Perfil</label>
-                        <input type="url" id="profile-photo-url" value="${user.photoURL || ''}" placeholder="https://exemplo.com/sua-foto.jpg" class="form-input w-full p-3 rounded-lg mt-1">
+                        <label for="profile-photo-upload" class="text-sm font-medium text-gray-300">Foto de Perfil</label>
+                        <p class="text-xs text-gray-400 mb-2">Clique na imagem ou no botão para escolher um arquivo (JPG, PNG).</p>
+                        <input type="file" id="profile-photo-upload" accept="image/jpeg, image/png" class="hidden">
+                        <button type="button" onclick="document.getElementById('profile-photo-upload').click();" class="btn btn-secondary text-xs font-semibold py-1 px-3 rounded-full">Selecionar Arquivo</button>
                     </div>
                 </div>
                 <div><label class="text-sm font-medium text-gray-300">Posto de Trabalho</label><input type="text" id="profile-posto" value="${user.posto || ''}" placeholder="Ex: Portaria Principal" class="form-input w-full p-3 rounded-lg mt-1"></div>
                 <div><label class="text-sm font-medium text-gray-300">Cidade</label><input type="text" id="profile-cidade" value="${user.cidade || ''}" placeholder="Ex: São Paulo" class="form-input w-full p-3 rounded-lg mt-1"></div>
                 ${regionalFieldHTML}
-                 <details class="pt-2">
-                    <summary class="text-sm text-gray-400 cursor-pointer hover:text-white">Como adicionar minha foto de perfil?</summary>
-                    <p class="text-xs text-gray-500 mt-2 p-3 bg-black/20 rounded-lg">Para adicionar uma foto, você precisa hospedá-la em um site (como <a href="https://imgur.com/upload" target="_blank" class="underline">Imgur</a>). Após o upload, clique com o botão direito na imagem, selecione "Copiar endereço da imagem" e cole o link no campo acima.</p>
-                </details>
                 <div class="pt-4 flex justify-end space-x-4">
                     <button type="button" id="cancel-edit-btn" class="btn btn-secondary font-bold py-3 px-8 rounded-full text-base">Cancelar</button>
                     <button type="submit" id="save-profile-btn" class="btn btn-primary font-bold py-3 px-8 rounded-full text-base"><span class="spinner"><i class="fas fa-spinner fa-spin"></i></span><span class="btn-text">Salvar</span></button>
@@ -382,8 +425,6 @@ function initializeAuth() {
 }
 
 // --- MAIN APP LOGIC ---
-// --- CÓDIGO PARA SUBSTITUIR A FUNÇÃO initializeAppUI NO SEU script.js ---
-
 async function initializeAppUI() {
     if (!currentUserProfile) {
         console.error('[DEBUG] initializeAppUI chamada sem currentUserProfile!');
@@ -397,11 +438,9 @@ async function initializeAppUI() {
 
     const mainContent = document.getElementById('main-content-grid');
     
-    // Limpa avisos antigos antes de adicionar um novo
     const existingNotices = document.querySelectorAll('.profile-notice');
     existingNotices.forEach(notice => notice.remove());
 
-    // --- LÓGICA DO AVISO DE REGIONAL ---
     if (!regional || regional === 'Nenhuma Regional') {
         const notificationBanner = document.createElement('div');
         notificationBanner.className = 'profile-notice container mx-auto px-6 md:px-12 mb-6';
@@ -420,21 +459,18 @@ async function initializeAppUI() {
             e.preventDefault();
             handleProfileClick();
         });
-    } 
-    // --- NOVA LÓGICA DO AVISO DE PERFIL INCOMPLETO ---
-    else {
+    } else {
         const missingFields = [];
         const missingRequired = [];
 
-        if (!posto) missingRequired.push('posto');
-        if (!cidade) missingRequired.push('cidade');
-        if (!photoURL) missingFields.push('foto');
+        if (!posto) missingRequired.push('seu posto');
+        if (!cidade) missingRequired.push('sua cidade');
+        if (!photoURL) missingFields.push('sua foto');
         
         const allMissing = [...missingRequired, ...missingFields];
 
         if (allMissing.length > 0) {
             let message = '';
-            // Formata a lista de campos para a mensagem (ex: "posto, cidade e foto")
             const formatFields = (fields) => {
                 if (fields.length === 1) return `**${fields[0]}**`;
                 const last = fields.pop();
@@ -442,10 +478,10 @@ async function initializeAppUI() {
             };
 
             if (missingRequired.length > 0 && missingFields.length > 0) {
-                 message = `Vimos que seu perfil está incompleto. Por favor, adicione seu/sua ${formatFields(allMissing)} para uma melhor identificação.`;
+                 message = `Vimos que seu perfil está incompleto. Por favor, adicione ${formatFields(allMissing)} para uma melhor identificação.`;
             } else if (missingRequired.length > 0) {
-                message = `Para uma melhor experiência, por favor, adicione seu/sua ${formatFields(missingRequired)} ao seu perfil.`;
-            } else { // Apenas a foto faltando
+                message = `Para uma melhor experiência, por favor, adicione ${formatFields(missingRequired)} ao seu perfil.`;
+            } else { 
                 message = `Que tal adicionar uma **foto** ao seu perfil? Ajuda os colegas a te reconhecerem!`;
             }
 
@@ -746,7 +782,6 @@ function handleManageUsers() {
         const filterText = filter.toLowerCase();
         const usersArray = Array.from(allUsers.values());
 
-        // prioridades (quanto maior o número, menor a prioridade)
         const rolePriority = {
             'dono': 1,
             'adm': 1,
@@ -762,13 +797,12 @@ function handleManageUsers() {
                 if (priorityA !== priorityB) {
                     return priorityA - priorityB;
                 }
-                return a.name.localeCompare(b.name); // Prioridade igual, mostra em ordem alfabética
+                return a.name.localeCompare(b.name);
             })
             .filter(user => user.name.toLowerCase().includes(filterText) || user.email.toLowerCase().includes(filterText))
             .forEach(user => {
                 const photo = user.photoURL || `https://placehold.co/40x40/1a1a1a/f0f0f0?text=${user.name.charAt(0)}`;
                 
-                // Faz 'dono' mostrar como 'admin'
                 const displayRole = (user.role === 'dono' || user.role === 'adm') ? 'admin' : user.role;
                 const roleClass = (user.role === 'dono' || user.role === 'adm' || user.role === 'adm') ? 'role-adm' : `role-${user.role}`;
 
@@ -854,7 +888,6 @@ async function handleShiftFormSubmit(e) {
 }
 
 function handleShiftListClick(e) {
-    // Adicionada a classe '.supervisor-name' para que o clique seja detectado
     const nameSpan = e.target.closest('.clickable-name, .supervisor-name');
     const actionButton = e.target.closest('button');
 
@@ -973,6 +1006,7 @@ function setupEventListeners() {
 function openProfileModal(user, isOwnProfile) {
     const modalEl = createAndAppendModal(profileModalHTML(user, isOwnProfile));
     if (!modalEl) return;
+
     if (isOwnProfile) {
         const viewMode = modalEl.querySelector('#profile-view-mode');
         const editMode = modalEl.querySelector('#profile-edit-mode');
@@ -986,6 +1020,22 @@ function openProfileModal(user, isOwnProfile) {
             editMode.classList.add('hidden');
         });
         editMode?.addEventListener('submit', (e) => saveProfileData(e, modalEl));
+        
+        const fileInput = modalEl.querySelector('#profile-photo-upload');
+        const previewImg = modalEl.querySelector('#edit-profile-pic-preview');
+
+        fileInput.addEventListener('change', async (e) => {
+            const file = e.target.files[0];
+            if (!file) return;
+
+            try {
+                const base64String = await processAndResizeImage(file, 200, 200, 0.7);
+                previewImg.src = base64String;
+            } catch (error) {
+                console.error("Erro ao processar imagem:", error);
+                alert("Houve um erro ao carregar a imagem. Tente um arquivo JPG ou PNG.");
+            }
+        });
     }
 }
 
@@ -1000,7 +1050,7 @@ async function saveProfileData(e, modalEl) {
     }
 
     const dataToUpdate = {
-        photoURL: document.getElementById('profile-photo-url').value,
+        photoURL: document.getElementById('edit-profile-pic-preview').src,
         posto: document.getElementById('profile-posto').value,
         cidade: document.getElementById('profile-cidade').value,
     };
@@ -1021,7 +1071,7 @@ async function saveProfileData(e, modalEl) {
         hideModalContainer(modalEl);
     } catch (error) {
         console.error("Erro ao salvar perfil:", error);
-        alert("Ocorreu um erro ao salvar. Tente novamente.");
+        alert("Ocorreu um erro ao salvar. O arquivo da imagem pode ser muito grande mesmo após a compressão. Tente uma imagem menor.");
     } finally {
         toggleButtonLoading(saveBtn, false);
     }
