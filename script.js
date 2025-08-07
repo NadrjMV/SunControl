@@ -382,26 +382,29 @@ function initializeAuth() {
 }
 
 // --- MAIN APP LOGIC ---
+// --- CÓDIGO PARA SUBSTITUIR A FUNÇÃO initializeAppUI NO SEU script.js ---
+
 async function initializeAppUI() {
     if (!currentUserProfile) {
         console.error('[DEBUG] initializeAppUI chamada sem currentUserProfile!');
         return;
     }
     
-    const { name, role, photoURL, regional } = currentUserProfile;
+    const { name, role, photoURL, regional, posto, cidade } = currentUserProfile;
     document.getElementById('user-greeting').textContent = `Olá, ${name.split(' ')[0]}`;
     document.getElementById('user-role').textContent = role;
     document.getElementById('profile-pic-header').src = photoURL || `https://placehold.co/40x40/1a1a1a/f0f0f0?text=${name.charAt(0)}`;
 
-    const existingNotice = document.getElementById('regional-update-notice');
-    if (existingNotice) {
-        existingNotice.remove();
-    }
+    const mainContent = document.getElementById('main-content-grid');
+    
+    // Limpa avisos antigos antes de adicionar um novo
+    const existingNotices = document.querySelectorAll('.profile-notice');
+    existingNotices.forEach(notice => notice.remove());
 
+    // --- LÓGICA DO AVISO DE REGIONAL ---
     if (!regional || regional === 'Nenhuma Regional') {
         const notificationBanner = document.createElement('div');
-        notificationBanner.id = 'regional-update-notice';
-        notificationBanner.className = 'container mx-auto px-6 md:px-12 mb-6';
+        notificationBanner.className = 'profile-notice container mx-auto px-6 md:px-12 mb-6';
         notificationBanner.innerHTML = `
             <div class="glassmorphism p-4 rounded-lg border-l-4 border-[var(--sun-yellow)] flex items-center justify-between gap-4">
                 <p class="text-white">
@@ -410,16 +413,59 @@ async function initializeAppUI() {
                 <button id="go-to-profile-btn" class="btn btn-primary text-sm font-semibold py-2 px-4 rounded-full ml-4 whitespace-nowrap">Atualizar Perfil</button>
             </div>
         `;
-
-        const mainContent = document.getElementById('main-content-grid');
         if (mainContent) {
             mainContent.parentNode.insertBefore(notificationBanner, mainContent);
         }
-
-        document.getElementById('go-to-profile-btn').addEventListener('click', (e) => {
+        notificationBanner.querySelector('#go-to-profile-btn').addEventListener('click', (e) => {
             e.preventDefault();
             handleProfileClick();
         });
+    } 
+    // --- NOVA LÓGICA DO AVISO DE PERFIL INCOMPLETO ---
+    else {
+        const missingFields = [];
+        const missingRequired = [];
+
+        if (!posto) missingRequired.push('posto');
+        if (!cidade) missingRequired.push('cidade');
+        if (!photoURL) missingFields.push('foto');
+        
+        const allMissing = [...missingRequired, ...missingFields];
+
+        if (allMissing.length > 0) {
+            let message = '';
+            // Formata a lista de campos para a mensagem (ex: "posto, cidade e foto")
+            const formatFields = (fields) => {
+                if (fields.length === 1) return `**${fields[0]}**`;
+                const last = fields.pop();
+                return `**${fields.join(', ')} e ${last}**`;
+            };
+
+            if (missingRequired.length > 0 && missingFields.length > 0) {
+                 message = `Vimos que seu perfil está incompleto. Por favor, adicione seu/sua ${formatFields(allMissing)} para uma melhor identificação.`;
+            } else if (missingRequired.length > 0) {
+                message = `Para uma melhor experiência, por favor, adicione seu/sua ${formatFields(missingRequired)} ao seu perfil.`;
+            } else { // Apenas a foto faltando
+                message = `Que tal adicionar uma **foto** ao seu perfil? Ajuda os colegas a te reconhecerem!`;
+            }
+
+            const profileNoticeBanner = document.createElement('div');
+            profileNoticeBanner.className = 'profile-notice container mx-auto px-6 md:px-12 mb-6';
+            profileNoticeBanner.innerHTML = `
+                <div class="glassmorphism p-4 rounded-lg border-l-4 border-[var(--sun-yellow)] flex items-center justify-between gap-4">
+                    <p class="text-white">${message.replace(/\*\*(.*?)\*\*/g, '<strong class="text-[var(--sun-yellow)]">$1</strong>')}</p>
+                    <button id="go-to-profile-notice-btn" class="btn btn-primary text-sm font-semibold py-2 px-4 rounded-full ml-4 whitespace-nowrap">Atualizar Perfil</button>
+                </div>
+            `;
+
+            if (mainContent) {
+                mainContent.parentNode.insertBefore(profileNoticeBanner, mainContent);
+            }
+            profileNoticeBanner.querySelector('#go-to-profile-notice-btn').addEventListener('click', (e) => {
+                e.preventDefault();
+                handleProfileClick();
+            });
+        }
     }
 
     const formSection = document.getElementById('form-section');
